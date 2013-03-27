@@ -6,6 +6,7 @@
 #define __GST_CODEC_BIN_H__
 
 #include <gst/gst.h>
+#include <gst/video/video.h>
 
 G_BEGIN_DECLS
 
@@ -27,7 +28,6 @@ struct _GstCodecBin
 {
   GstBin parent;
 
-  GstPad *sinkpad, *srcpad;
   GstElement *src;
   GstElement *sink;
   GstPad *element_sink_pad;
@@ -43,9 +43,6 @@ struct _GstCodecBinClass
 };
 
 GType gst_codec_bin_get_type (void);
-
-void gst_codec_bin_register_src (GstCodecBinClass *klass, gchar *src);
-void gst_codec_bin_register_sink (GstCodecBinClass *klass, gchar *sink);
 
 G_END_DECLS
 

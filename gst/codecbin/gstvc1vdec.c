@@ -9,21 +9,33 @@
 
 GST_BOILERPLATE (GstVc1vDec, gst_vc1v_dec, GstCodecBin, GST_TYPE_CODEC_BIN);
 
+static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
+    GST_PAD_SINK,
+    GST_PAD_ALWAYS,
+    GST_STATIC_CAPS ("video/x-wmv, wmvversion = [1, 3]"));
+
+static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
+    GST_PAD_SRC,
+    GST_PAD_ALWAYS,
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YUMB }")));
+
 static void
 gst_vc1v_dec_base_init (gpointer gclass)
 {
   GstCodecBinClass *bin_class = GST_CODEC_BIN_CLASS (gclass);
-
   GstElementClass *element_class = GST_ELEMENT_CLASS (gclass);
+
+  gst_element_class_add_static_pad_template (element_class, &src_factory);
+  gst_element_class_add_static_pad_template (element_class, &sink_factory);
 
   gst_element_class_set_details_simple (element_class,
       "MPEG2 video decoder",
       "Codec/Decoder/Video",
-      "Wrapper for omx MPEG2 video decoder",
+      "Wrapper for omx VC1 video decoder",
       "Mohammed Hassan <mohammed.hassan@jollamobile.com>");
 
-  gst_codec_bin_register_src (bin_class, "ste_colorconv");
-  gst_codec_bin_register_sink (bin_class, "omxvc1videodec");
+  bin_class->src_element = "ste_colorconv";
+  bin_class->sink_element = "omxvc1videodec";
 }
 
 static void
