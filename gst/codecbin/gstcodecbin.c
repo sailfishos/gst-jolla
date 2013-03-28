@@ -20,9 +20,9 @@ GST_BOILERPLATE_FULL (GstCodecBin, gst_codec_bin, GstBin, GST_TYPE_BIN,
 
 static void gst_codec_bin_finalize (GObject * object);
 static gboolean gst_codec_bin_create_sink_element (GstCodecBin * bin,
-    const gchar * factory);
+    GstCodecBinClass * klass, const gchar * factory);
 static gboolean gst_codec_bin_create_src_element (GstCodecBin * bin,
-    const gchar * factory);
+    GstCodecBinClass * klass, const gchar * factory);
 
 static void
 gst_codec_bin_base_init (gpointer gclass)
@@ -55,8 +55,8 @@ gst_codec_bin_init (GstCodecBin * bin, GstCodecBinClass * gclass)
     return;
   }
 
-  if (!gst_codec_bin_create_sink_element (bin, gclass->sink_element) ||
-      !gst_codec_bin_create_src_element (bin, gclass->src_element)) {
+  if (!gst_codec_bin_create_sink_element (bin, gclass, gclass->sink_element) ||
+      !gst_codec_bin_create_src_element (bin, gclass, gclass->src_element)) {
     return;
   }
 
@@ -83,11 +83,17 @@ gst_codec_bin_finalize (GObject * object)
 }
 
 static gboolean
-gst_codec_bin_create_sink_element (GstCodecBin * bin, const gchar * factory)
+gst_codec_bin_create_sink_element (GstCodecBin * bin, GstCodecBinClass * klass,
+    const gchar * factory)
 {
   GstPad *sink_pad = NULL;
   GstPad *element_pad = NULL;
   GstElement *sink = NULL;
+  GstPadTemplate *tpl =
+      gst_element_class_get_pad_template (GST_ELEMENT_CLASS (klass), "sink");
+
+  GST_DEBUG_OBJECT (bin, "sink pad template has caps %" GST_PTR_FORMAT,
+      tpl->caps);
 
   sink = gst_element_factory_make (factory, NULL);
   if (!sink) {
@@ -102,7 +108,7 @@ gst_codec_bin_create_sink_element (GstCodecBin * bin, const gchar * factory)
     return FALSE;
   }
 
-  sink_pad = gst_ghost_pad_new ("sink", element_pad);
+  sink_pad = gst_ghost_pad_new_from_template ("sink", element_pad, tpl);
   gst_element_add_pad (GST_ELEMENT (bin), sink_pad);
 
   bin->element_sink_pad = element_pad;
@@ -112,11 +118,17 @@ gst_codec_bin_create_sink_element (GstCodecBin * bin, const gchar * factory)
 }
 
 static gboolean
-gst_codec_bin_create_src_element (GstCodecBin * bin, const gchar * factory)
+gst_codec_bin_create_src_element (GstCodecBin * bin, GstCodecBinClass * klass,
+    const gchar * factory)
 {
   GstPad *src_pad = NULL;
   GstPad *element_pad = NULL;
   GstElement *src = NULL;
+  GstPadTemplate *tpl =
+      gst_element_class_get_pad_template (GST_ELEMENT_CLASS (klass), "src");
+
+  GST_DEBUG_OBJECT (bin, "src pad template has caps %" GST_PTR_FORMAT,
+      tpl->caps);
 
   src = gst_element_factory_make (factory, NULL);
   if (!src) {
@@ -131,7 +143,7 @@ gst_codec_bin_create_src_element (GstCodecBin * bin, const gchar * factory)
     return FALSE;
   }
 
-  src_pad = gst_ghost_pad_new ("src", element_pad);
+  src_pad = gst_ghost_pad_new_from_template ("src", element_pad, tpl);
   gst_element_add_pad (GST_ELEMENT (bin), src_pad);
 
   bin->element_src_pad = element_pad;
