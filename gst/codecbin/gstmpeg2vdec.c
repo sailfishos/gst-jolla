@@ -18,7 +18,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YUMB }")));
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YUMB, I420}")));
 
 static void
 gst_mpeg2v_dec_base_init (gpointer gclass)
