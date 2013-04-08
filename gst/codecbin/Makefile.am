@@ -9,12 +9,13 @@ libgstcodecbin_la_SOURCES = plugin.c \
 			    gstmpeg2vdec.c \
 			    gstvc1vdec.c \
 			    gsth263dec.c \
+			    gsth264dec.c \
 			    gstcodecbin.h \
 			    gstmpeg4vdec.h \
 			    gstmpeg2vdec.h \
 			    gstvc1vdec.h \
-			    gsth263dec.h
-
+			    gsth263dec.h \
+			    gsth264dec.h
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgstcodecbin_la_CFLAGS = $(GST_CFLAGS)
 libgstcodecbin_la_LIBADD = $(GST_LIBS)
