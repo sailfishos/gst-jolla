@@ -1,17 +1,17 @@
-Name:           gstreamer0.10-jolla
-Summary:        Collection of Jolla GStreamer plugins
+Name:           gstreamer0.10-ste-codecbin
+Summary:        Collection of STE specific GStreamer plugins
 Version:        1.0.0
 Release:        1
 Group:          Applications/Multimedia
 License:        Proprietary
 URL:            http://jollamobile.com
-Source0:        gstreamer0.10-jolla-%{version}.tar.gz
+Source0:        gstreamer0.10-ste-codecbin-%{version}.tar.gz
 BuildRequires:  pkgconfig(gstreamer-video-0.10)
 Requires:       gstreamer0.10-omx
 Requires:       gstreamer0.10-stecolorconv
 
 %description
-Collection of Jolla GStreamer plugins
+Collection of STE specific GStreamer plugins
 
 %prep
 %setup -q
