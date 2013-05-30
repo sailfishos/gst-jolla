@@ -80,6 +80,8 @@ dnl set proper LDFLAGS for plugins
 GST_PLUGIN_LDFLAGS='-module -avoid-version -export-symbols-regex [_]*\(gst_\|Gst\|GST_\).*'
 AC_SUBST(GST_PLUGIN_LDFLAGS)
 
-AC_CONFIG_FILES([Makefile gst/Makefile gst/codecbin/Makefile])
+AC_CHECK_LIB(hardware, hw_get_module, [], AC_MSG_ERROR([libhardware not found]))
+
+AC_CONFIG_FILES([Makefile gst/Makefile gst/codecbin/Makefile gst/gralloc/Makefile])
 AC_OUTPUT
 
