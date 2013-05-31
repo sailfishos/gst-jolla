@@ -18,3 +18,47 @@
  */
 
 #include "gstnativebuffer.h"
+
+static void gst_native_buffer_finalize (GstNativeBuffer * buf);
+
+static GstBufferClass *parent_class;
+
+G_DEFINE_TYPE (GstNativeBuffer, gst_native_buffer, GST_TYPE_BUFFER);
+
+static void
+gst_native_buffer_class_init (GstNativeBufferClass * buffer_class)
+{
+  GstMiniObjectClass *mo_class = GST_MINI_OBJECT_CLASS (buffer_class);
+
+  parent_class = g_type_class_peek_parent (buffer_class);
+
+  mo_class->finalize =
+      (GstMiniObjectFinalizeFunction) gst_native_buffer_finalize;
+}
+
+static void
+gst_native_buffer_init (GstNativeBuffer * instance)
+{
+  instance->handle = NULL;
+  instance->gralloc = NULL;
+}
+
+static void
+gst_native_buffer_finalize (GstNativeBuffer * buf)
+{
+  gst_gralloc_unref (buf->gralloc);
+
+  GST_MINI_OBJECT_CLASS (parent_class)->finalize (GST_MINI_OBJECT (buf));
+}
+
+GstNativeBuffer *
+gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc)
+{
+  GstNativeBuffer *buffer =
+      (GstNativeBuffer *) gst_mini_object_new (GST_TYPE_NATIVE_BUFFER);
+
+  buffer->handle = handle;
+  buffer->gralloc = gst_gralloc_ref (gralloc);
+
+  return buffer;
+}

@@ -21,6 +21,7 @@
 #define __GST_NATIVE_BUFFER_H__
 
 #include <gst/gst.h>
+#include "gstgralloc.h"
 
 G_BEGIN_DECLS
 
@@ -28,9 +29,17 @@ typedef struct _GstNativeBuffer GstNativeBuffer;
 typedef struct _GstNativeBufferClass GstNativeBufferClass;
 
 #define GST_TYPE_NATIVE_BUFFER            (gst_native_buffer_get_type())
+#define GST_IS_NATIVE_BUFFER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GST_TYPE_NATIVE_BUFFER))
+#define GST_IS_NATIVE_BUFFER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GST_TYPE_NATIVE_BUFFER))
+#define GST_NATIVE_BUFFER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GST_TYPE_NATIVE_BUFFER, GstNativeBufferClass))
+#define GST_NATIVE_BUFFER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_NATIVE_BUFFER, GstNativeBuffer))
+#define GST_NATIVE_BUFFER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GST_TYPE_NATIVE_BUFFER, GstNativeBufferClass))
 
 struct _GstNativeBuffer {
   GstBuffer buffer;
+
+  buffer_handle_t handle;
+  GstGralloc *gralloc;
 };
 
 struct _GstNativeBufferClass {
@@ -39,7 +48,7 @@ struct _GstNativeBufferClass {
 
 GType           gst_native_buffer_get_type           (void);
 
-GstNativeBuffer*   gst_native_buffer_new                ();
+GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc);
 
 G_END_DECLS
 
