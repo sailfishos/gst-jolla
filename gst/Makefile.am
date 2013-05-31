@@ -1,1 +1,1 @@
-SUBDIRS = codecbin
+SUBDIRS = codecbin gralloc hwcsink
