@@ -57,6 +57,17 @@ PKG_CHECK_MODULES(GST, [
   ])
 ])
 
+PKG_CHECK_MODULES(GST_VIDEO, [
+  gstreamer-video-0.10 >= $GST_REQUIRED
+], [
+  AC_SUBST(GST_VIDEO_CFLAGS)
+  AC_SUBST(GST_VIDEO_LIBS)
+], [
+  AC_MSG_ERROR([
+      GStreamer video is missing
+  ])
+])
+
 dnl check if compiler understands -Wall (if yes, add -Wall to GST_CFLAGS)
 AC_MSG_CHECKING([to see if compiler understands -Wall])
 save_CFLAGS="$CFLAGS"
@@ -82,6 +93,12 @@ AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 AC_CHECK_LIB(hardware, hw_get_module, [], AC_MSG_ERROR([libhardware not found]))
 
-AC_CONFIG_FILES([Makefile gst/Makefile gst/codecbin/Makefile gst/gralloc/Makefile])
+AC_CONFIG_FILES([Makefile
+		gst/Makefile
+		gst/codecbin/Makefile
+		gst/gralloc/Makefile
+		gst/nativebuffer/Makefile
+		gst/hwcsink/Makefile
+		])
 AC_OUTPUT
 
