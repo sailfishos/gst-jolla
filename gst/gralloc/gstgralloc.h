@@ -66,4 +66,4 @@ void gst_gralloc_free (GstGralloc *gralloc, buffer_handle_t handle);
 
 G_END_DECLS
 
-#endif /* __GST_NATIVE_BUFFER_H__ */
+#endif /* __GST_GRALLOC_H__ */

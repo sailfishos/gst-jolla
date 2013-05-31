@@ -17,6 +17,10 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
+
 #include "gstgralloc.h"
 
 G_DEFINE_TYPE (GstGralloc, gst_gralloc, GST_TYPE_MINI_OBJECT);
