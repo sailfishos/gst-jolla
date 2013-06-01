@@ -10,5 +10,5 @@ libgstnativebuffer_la_LIBADD = $(GST_LIBS) -L../gralloc -lgstgralloc
 libgstnativebuffer_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstnativebuffer_la_LIBTOOLFLAGS = --tag=disable-static
 
-libgstnativebuffer_ladir = $(includedir)/gstreamer-@GST_MAJORMINOR@/gst/
+libgstnativebuffer_ladir = $(includedir)/gstreamer-0.10/gst/
 libgstnativebuffer_la_HEADERS = gstnativebuffer.h

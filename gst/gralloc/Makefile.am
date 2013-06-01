@@ -10,5 +10,5 @@ libgstgralloc_la_LIBADD = $(GST_LIBS) -lhardware -lhybris-common
 libgstgralloc_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstgralloc_la_LIBTOOLFLAGS = --tag=disable-static
 
-libgstgralloc_ladir = $(includedir)/gstreamer-@GST_MAJORMINOR@/gst/
+libgstgralloc_ladir = $(includedir)/gstreamer-0.10/gst/
 libgstgralloc_la_HEADERS = gstgralloc.h
