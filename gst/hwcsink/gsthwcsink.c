@@ -25,6 +25,7 @@
 #include <gst/video/video.h>
 #include <stdlib.h>
 #include <system/graphics.h>
+#include "gstnativebuffer.h"
 
 GST_DEBUG_CATEGORY_STATIC (hwcsink_debug);
 #define GST_CAT_DEFAULT hwcsink_debug
@@ -55,10 +56,13 @@ static buffer_handle_t gst_hwc_sink_setup_handle (GstHwcSink * sink,
 static void gst_hwc_sink_destroy_handle (GstHwcSink * sink,
     buffer_handle_t handle);
 
+static GstFlowReturn gst_hwc_sink_show_handle (GstHwcSink * sink,
+    buffer_handle_t handle);
+
 static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YV12 }")));
+    GST_STATIC_CAPS_ANY);
 
 static void
 gst_hwc_sink_base_init (gpointer gclass)
@@ -107,44 +111,22 @@ static GstFlowReturn
 gst_hwc_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
 {
   GstHwcSink *sink = GST_HWC_SINK (bsink);
+  GstFlowReturn ret;
+
+  if (GST_IS_NATIVE_BUFFER (buf)) {
+    return gst_hwc_sink_show_handle (sink, GST_NATIVE_BUFFER (buf)->handle);
+  }
 
   buffer_handle_t handle = gst_hwc_sink_setup_handle (sink, buf);
   if (!handle) {
     return GST_FLOW_ERROR;
   }
 
-  int x;
-
-  for (x = 0; x < NUM_LAYERS; x++) {
-    hwc_layer_1_t *layer = &sink->hwc_display->hwLayers[x];
-    layer->handle = handle;
-  }
-
-  int err = sink->hwc->prepare (sink->hwc, 1, &sink->hwc_display);
-  if (err != 0) {
-    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED, ("Could not prepare buffer: %s",
-            strerror (-err)), (NULL));
-
-    gst_hwc_sink_destroy_handle (sink, handle);
-
-    return GST_FLOW_ERROR;
-  }
-  // Reset flag
-  sink->hwc_display->flags = 0;
-
-  err = sink->hwc->set (sink->hwc, 1, &sink->hwc_display);
-  if (err != 0) {
-    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED, ("Could not render buffer: %s",
-            strerror (-err)), (NULL));
-
-    gst_hwc_sink_destroy_handle (sink, handle);
-
-    return GST_FLOW_ERROR;
-  }
+  ret = gst_hwc_sink_show_handle (sink, handle);
 
   gst_hwc_sink_destroy_handle (sink, handle);
 
-  return GST_FLOW_OK;
+  return ret;
 }
 
 static gboolean
@@ -299,12 +281,16 @@ gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   GstHwcSink *sink = GST_HWC_SINK (bsink);
   GstVideoSink *vsink = GST_VIDEO_SINK (bsink);
 
+  GstStructure *s = gst_caps_get_structure (caps, 0);
+
   if (!gst_video_format_parse_caps (caps, &format, &width, &height)) {
     GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Failed to parse caps"), (NULL));
     return FALSE;
   }
 
-  if (format != GST_VIDEO_FORMAT_YV12) {
+  if (!strcmp (gst_structure_get_name (s), "video/x-android-buffer")) {
+    /* Nothing */
+  } else if (format != GST_VIDEO_FORMAT_YV12) {
     GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Can only handle YV12"), (NULL));
     return FALSE;
   }
@@ -377,4 +363,35 @@ static void
 gst_hwc_sink_destroy_handle (GstHwcSink * sink, buffer_handle_t handle)
 {
   gst_gralloc_free (sink->gralloc, handle);
+}
+
+static GstFlowReturn
+gst_hwc_sink_show_handle (GstHwcSink * sink, buffer_handle_t handle)
+{
+  int x;
+
+  for (x = 0; x < NUM_LAYERS; x++) {
+    hwc_layer_1_t *layer = &sink->hwc_display->hwLayers[x];
+    layer->handle = handle;
+  }
+
+  int err = sink->hwc->prepare (sink->hwc, 1, &sink->hwc_display);
+  if (err != 0) {
+    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED, ("Could not prepare buffer: %s",
+            strerror (-err)), (NULL));
+
+    return GST_FLOW_ERROR;
+  }
+  // Reset flag
+  sink->hwc_display->flags = 0;
+
+  err = sink->hwc->set (sink->hwc, 1, &sink->hwc_display);
+  if (err != 0) {
+    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED, ("Could not render buffer: %s",
+            strerror (-err)), (NULL));
+
+    return GST_FLOW_ERROR;
+  }
+
+  return GST_FLOW_OK;
 }
