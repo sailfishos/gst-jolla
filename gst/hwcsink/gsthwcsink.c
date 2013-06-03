@@ -99,6 +99,8 @@ gst_hwc_sink_init (GstHwcSink * sink, GstHwcSinkClass * gclass)
   sink->fb = NULL;
   sink->hwc = NULL;
   sink->hwc_display = NULL;
+
+  GST_OBJECT_FLAG_SET (sink, GST_ELEMENT_IS_SINK);
 }
 
 static void
@@ -113,7 +115,10 @@ gst_hwc_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   GstHwcSink *sink = GST_HWC_SINK (bsink);
   GstFlowReturn ret;
 
+  GST_DEBUG_OBJECT (sink, "show frame");
+
   if (GST_IS_NATIVE_BUFFER (buf)) {
+    GST_DEBUG_OBJECT (sink, "got native buffer");
     return gst_hwc_sink_show_handle (sink, GST_NATIVE_BUFFER (buf)->handle);
   }
 
@@ -174,8 +179,11 @@ static gboolean
 gst_hwc_sink_open_hwc (GstHwcSink * sink)
 {
   hw_module_t *hwmod;
-  int err =
-      hw_get_module (HWC_HARDWARE_MODULE_ID, (const hw_module_t **) &hwmod);
+  int err = 0;
+
+  GST_DEBUG_OBJECT (sink, "open hwc");
+
+  err = hw_get_module (HWC_HARDWARE_MODULE_ID, (const hw_module_t **) &hwmod);
   if (err != 0) {
     GST_ELEMENT_ERROR (sink, LIBRARY, INIT, ("Could not load hwc: %s",
             strerror (-err)), (NULL));
@@ -226,12 +234,16 @@ gst_hwc_sink_open_hwc (GstHwcSink * sink)
     layer->releaseFenceFd = -1;
   }
 
+  GST_DEBUG_OBJECT (sink, "opened hwc");
+
   return TRUE;
 }
 
 static void
 gst_hwc_sink_close_hwc (GstHwcSink * sink)
 {
+  GST_DEBUG_OBJECT (sink, "close hwc");
+
   if (sink->hwc) {
     hwc_close_1 (sink->hwc);
   }
@@ -242,13 +254,18 @@ gst_hwc_sink_close_hwc (GstHwcSink * sink)
 
   sink->hwc = NULL;
   sink->hwc_display = NULL;
+
+  GST_DEBUG_OBJECT (sink, "closed hwc");
 }
 
 static gboolean
 gst_hwc_sink_open_fb (GstHwcSink * sink)
 {
-  int err =
-      framebuffer_open ((hw_module_t *) sink->gralloc->gralloc, &sink->fb);
+  int err = 0;
+
+  GST_DEBUG_OBJECT (sink, "open fb");
+
+  err = framebuffer_open ((hw_module_t *) sink->gralloc->gralloc, &sink->fb);
   if (err != 0) {
     GST_ELEMENT_ERROR (sink, LIBRARY, INIT, ("Could not open fb: %s",
             strerror (-err)), (NULL));
@@ -260,16 +277,22 @@ gst_hwc_sink_open_fb (GstHwcSink * sink)
   sink->screen_rect.right = sink->fb->width;
   sink->screen_rect.bottom = sink->fb->height;
 
+  GST_DEBUG_OBJECT (sink, "opened fb");
+
   return TRUE;
 }
 
 static void
 gst_hwc_sink_close_fb (GstHwcSink * sink)
 {
+  GST_DEBUG_OBJECT (sink, "close fb");
+
   if (sink->fb) {
     framebuffer_close (sink->fb);
     sink->fb = NULL;
   }
+
+  GST_DEBUG_OBJECT (sink, "closed fb");
 }
 
 static gboolean
@@ -282,6 +305,8 @@ gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   GstVideoSink *vsink = GST_VIDEO_SINK (bsink);
 
   GstStructure *s = gst_caps_get_structure (caps, 0);
+
+  GST_DEBUG_OBJECT (sink, "set caps %" GST_PTR_FORMAT, caps);
 
   if (!gst_video_format_parse_caps (caps, &format, &width, &height)) {
     GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Failed to parse caps"), (NULL));
