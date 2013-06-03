@@ -59,17 +59,29 @@ static void gst_hwc_sink_destroy_handle (GstHwcSink * sink,
 static GstFlowReturn gst_hwc_sink_show_handle (GstHwcSink * sink,
     buffer_handle_t handle);
 
-static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
-    GST_PAD_SINK,
-    GST_PAD_ALWAYS,
-    GST_STATIC_CAPS_ANY);
+static GstPadTemplate *sink_template;
 
 static void
 gst_hwc_sink_base_init (gpointer gclass)
 {
   GstElementClass *element_class = GST_ELEMENT_CLASS (gclass);
 
-  gst_element_class_add_static_pad_template (element_class, &sink_factory);
+  GstCaps *caps = gst_caps_new_empty ();
+  gst_caps_append_structure (caps,
+      gst_structure_new ("video/x-raw-yuv",
+          "format", GST_TYPE_FOURCC, GST_MAKE_FOURCC ('Y', 'V', '1', '2'),
+          "width", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+          "height", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+          "framerate", GST_TYPE_FRACTION_RANGE, 0, 1, 100, 1, NULL));
+  gst_caps_append_structure (caps,
+      gst_structure_new ("video/x-android-buffer", NULL));
+
+  sink_template = gst_pad_template_new ("sink",
+      GST_PAD_SINK, GST_PAD_ALWAYS, caps);
+
+  gst_element_class_add_pad_template (element_class, sink_template);
+  gst_object_unref (sink_template);
+
 
   gst_element_class_set_details_simple (element_class,
       "Hardware compositor sink",
