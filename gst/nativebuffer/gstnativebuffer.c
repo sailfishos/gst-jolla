@@ -46,6 +46,13 @@ gst_native_buffer_init (GstNativeBuffer * instance)
 static void
 gst_native_buffer_finalize (GstNativeBuffer * buf)
 {
+  if (buf->finalize_callback) {
+    if (buf->finalize_callback (buf->finalize_callback_data, buf)) {
+      // Callback returning TRUE means it's resurrected the buffer.
+      return;
+    }
+  }
+
   gst_gralloc_unref (buf->gralloc);
 
   GST_MINI_OBJECT_CLASS (parent_class)->finalize (GST_MINI_OBJECT (buf));

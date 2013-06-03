@@ -40,6 +40,9 @@ struct _GstNativeBuffer {
 
   buffer_handle_t handle;
   GstGralloc *gralloc;
+
+  gboolean (* finalize_callback) (void * data, GstNativeBuffer * buffer);
+  void *finalize_callback_data;
 };
 
 struct _GstNativeBufferClass {
