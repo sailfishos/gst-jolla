@@ -37,10 +37,11 @@ gst_native_buffer_class_init (GstNativeBufferClass * buffer_class)
 }
 
 static void
-gst_native_buffer_init (GstNativeBuffer * instance)
+gst_native_buffer_init (GstNativeBuffer * buf)
 {
-  instance->handle = NULL;
-  instance->gralloc = NULL;
+  buf->handle = NULL;
+  buf->gralloc = NULL;
+  buf->stride = 0;
 }
 
 static void
@@ -59,13 +60,14 @@ gst_native_buffer_finalize (GstNativeBuffer * buf)
 }
 
 GstNativeBuffer *
-gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc)
+gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride)
 {
   GstNativeBuffer *buffer =
       (GstNativeBuffer *) gst_mini_object_new (GST_TYPE_NATIVE_BUFFER);
 
   buffer->handle = handle;
   buffer->gralloc = gst_gralloc_ref (gralloc);
+  buffer->stride = stride;
 
   return buffer;
 }
