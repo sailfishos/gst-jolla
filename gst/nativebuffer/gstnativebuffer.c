@@ -69,5 +69,8 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride)
   buffer->gralloc = gst_gralloc_ref (gralloc);
   buffer->stride = stride;
 
+  GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (handle);
+  GST_BUFFER_DATA (GST_BUFFER (buffer)) = handle;
+
   return buffer;
 }
