@@ -325,6 +325,12 @@ gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
     return FALSE;
   }
 
+  if (width == 0 || height == 0) {
+    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Caps without width or height"),
+        (NULL));
+    return FALSE;
+  }
+
   if (!strcmp (gst_structure_get_name (s), "video/x-android-buffer")) {
     /* Nothing */
   } else if (format != GST_VIDEO_FORMAT_YV12) {
