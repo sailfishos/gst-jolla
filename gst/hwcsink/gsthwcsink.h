@@ -53,6 +53,9 @@ struct _GstHwcSink {
 
   framebuffer_device_t *fb;
   hwc_composer_device_1_t *hwc;
+
+  int fps_n;
+  int fps_d;
 };
 
 struct _GstHwcSinkClass {

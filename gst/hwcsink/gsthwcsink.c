@@ -58,6 +58,8 @@ static void gst_hwc_sink_destroy_handle (GstHwcSink * sink,
 
 static GstFlowReturn gst_hwc_sink_show_handle (GstHwcSink * sink,
     buffer_handle_t handle);
+static void gst_hwc_sink_get_times (GstBaseSink * bsink, GstBuffer * buf,
+    GstClockTime * start, GstClockTime * end);
 
 static GstPadTemplate *sink_template;
 
@@ -102,6 +104,7 @@ gst_hwc_sink_class_init (GstHwcSinkClass * klass)
   basesink_class->start = GST_DEBUG_FUNCPTR (gst_hwc_sink_start);
   basesink_class->stop = GST_DEBUG_FUNCPTR (gst_hwc_sink_stop);
   basesink_class->set_caps = GST_DEBUG_FUNCPTR (gst_hwc_sink_set_caps);
+  basesink_class->get_times = GST_DEBUG_FUNCPTR (gst_hwc_sink_get_times);
 }
 
 static void
@@ -311,6 +314,7 @@ static gboolean
 gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
 {
   int width, height;
+  int fps_n, fps_d;
   GstVideoFormat format = GST_VIDEO_FORMAT_UNKNOWN;
 
   GstHwcSink *sink = GST_HWC_SINK (bsink);
@@ -331,6 +335,12 @@ gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
     return FALSE;
   }
 
+  if (!gst_video_parse_caps_framerate (caps, &fps_n, &fps_d)) {
+    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Failed to parse framerate"),
+        (NULL));
+    return FALSE;
+  }
+
   if (!strcmp (gst_structure_get_name (s), "video/x-android-buffer")) {
     /* Nothing */
   } else if (format != GST_VIDEO_FORMAT_YV12) {
@@ -347,6 +357,9 @@ gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   sink->src_rect.bottom = height;
 
   sink->hwc_display->flags = HWC_GEOMETRY_CHANGED;
+
+  sink->fps_n = fps_n;
+  sink->fps_d = fps_d;
 
   int x;
   for (x = 0; x < NUM_LAYERS; x++) {
@@ -437,4 +450,26 @@ gst_hwc_sink_show_handle (GstHwcSink * sink, buffer_handle_t handle)
   }
 
   return GST_FLOW_OK;
+}
+
+static void
+gst_hwc_sink_get_times (GstBaseSink * bsink, GstBuffer * buf,
+    GstClockTime * start, GstClockTime * end)
+{
+  GstHwcSink *sink = GST_HWC_SINK (bsink);
+
+  GST_DEBUG_OBJECT (sink, "get times");
+
+  if (GST_BUFFER_TIMESTAMP_IS_VALID (buf)) {
+    *start = GST_BUFFER_TIMESTAMP (buf);
+    if (GST_BUFFER_DURATION_IS_VALID (buf)) {
+      *end = *start + GST_BUFFER_DURATION (buf);
+    } else {
+      if (sink->fps_n > 0) {
+	*end = *start +
+	     gst_util_uint64_scale_int (GST_SECOND, sink->fps_d,
+					sink->fps_n);
+      }
+    }
+  }
 }
