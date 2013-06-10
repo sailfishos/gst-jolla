@@ -60,6 +60,13 @@ static GstFlowReturn gst_hwc_sink_show_handle (GstHwcSink * sink,
     buffer_handle_t handle);
 static void gst_hwc_sink_get_times (GstBaseSink * bsink, GstBuffer * buf,
     GstClockTime * start, GstClockTime * end);
+GstFlowReturn gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
+    guint size, GstCaps * caps, GstBuffer ** buf);
+static buffer_handle_t gst_hwc_sink_alloc_handle (GstHwcSink * sink,
+    int *stride);
+
+static gboolean gst_hwc_sink_destroy_buffer (void *data,
+    GstNativeBuffer * buffer);
 
 static GstPadTemplate *sink_template;
 
@@ -105,6 +112,7 @@ gst_hwc_sink_class_init (GstHwcSinkClass * klass)
   basesink_class->stop = GST_DEBUG_FUNCPTR (gst_hwc_sink_stop);
   basesink_class->set_caps = GST_DEBUG_FUNCPTR (gst_hwc_sink_set_caps);
   basesink_class->get_times = GST_DEBUG_FUNCPTR (gst_hwc_sink_get_times);
+  basesink_class->buffer_alloc = GST_DEBUG_FUNCPTR (gst_hwc_sink_buffer_alloc);
 }
 
 static void
@@ -122,6 +130,29 @@ static void
 gst_hwc_sink_finalize (GObject * object)
 {
   G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static buffer_handle_t
+gst_hwc_sink_alloc_handle (GstHwcSink * sink, int *stride)
+{
+  int format = HAL_PIXEL_FORMAT_YV12;
+  int usage = GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_RARELY
+      | GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB
+      | GRALLOC_USAGE_EXTERNAL_DISP;
+
+  GstVideoSink *vsink = GST_VIDEO_SINK (sink);
+
+  buffer_handle_t handle =
+      gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
+      format, usage, stride);
+
+  if (!handle) {
+    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
+        ("Could not allocate native buffer handle"), (NULL));
+    return NULL;
+  }
+
+  return handle;
 }
 
 static GstFlowReturn
@@ -375,18 +406,9 @@ gst_hwc_sink_setup_handle (GstHwcSink * sink, GstBuffer * buffer)
 {
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
   int stride;
-  int format = HAL_PIXEL_FORMAT_YV12;
-  int usage = GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_RARELY
-      | GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB
-      | GRALLOC_USAGE_EXTERNAL_DISP;
-
-  buffer_handle_t handle =
-      gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
-      format, usage, &stride);
+  buffer_handle_t handle = gst_hwc_sink_alloc_handle (sink, &stride);
 
   if (!handle) {
-    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
-        ("Could not allocate native buffer handle"), (NULL));
     return NULL;
   }
 
@@ -466,10 +488,58 @@ gst_hwc_sink_get_times (GstBaseSink * bsink, GstBuffer * buf,
       *end = *start + GST_BUFFER_DURATION (buf);
     } else {
       if (sink->fps_n > 0) {
-	*end = *start +
-	     gst_util_uint64_scale_int (GST_SECOND, sink->fps_d,
-					sink->fps_n);
+        *end = *start +
+            gst_util_uint64_scale_int (GST_SECOND, sink->fps_d, sink->fps_n);
       }
     }
   }
+}
+
+GstFlowReturn
+gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset, guint size,
+    GstCaps * caps, GstBuffer ** buf)
+{
+  int stride;
+  buffer_handle_t handle;
+  GstHwcSink *sink = GST_HWC_SINK (bsink);
+
+  /* TODO: We need to add format to the sink caps. */
+
+  GST_DEBUG_OBJECT (sink, "buffer alloc");
+
+  if (!sink->gralloc || !sink->fb || !sink->hwc || !sink->hwc_display) {
+    return GST_FLOW_WRONG_STATE;
+  }
+
+  if (!gst_hwc_sink_set_caps (GST_BASE_SINK (sink), caps)) {
+    return GST_FLOW_ERROR;
+  }
+
+  handle = gst_hwc_sink_alloc_handle (sink, &stride);
+
+  if (!handle) {
+    return GST_FLOW_ERROR;
+  }
+
+  GstNativeBuffer *buffer =
+      gst_native_buffer_new (handle, sink->gralloc, stride);
+  buffer->finalize_callback_data = gst_object_ref (sink);
+  buffer->finalize_callback = gst_hwc_sink_destroy_buffer;
+
+  *buf = GST_BUFFER (buffer);
+
+  return GST_FLOW_OK;
+}
+
+static gboolean
+gst_hwc_sink_destroy_buffer (void *data, GstNativeBuffer * buffer)
+{
+  /* TODO: cache and reuse the buffer. */
+  GstHwcSink *sink = (GstHwcSink *) data;
+
+  gst_hwc_sink_destroy_handle (sink, buffer->handle);
+
+  gst_object_unref (sink);
+
+  return FALSE;
 }
