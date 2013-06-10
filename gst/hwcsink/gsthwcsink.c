@@ -174,7 +174,7 @@ gst_hwc_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   if (!strcmp (gst_structure_get_name (s), GST_NATIVE_BUFFER_NAME)
       && GST_BUFFER_SIZE (buf) == sizeof (buffer_handle_t)
       && GST_BUFFER_DATA (buf)) {
-    handle = GST_BUFFER_DATA (buf);
+    handle = (void *) GST_BUFFER_DATA (buf);
     return gst_hwc_sink_show_handle (sink, handle);
   }
 
