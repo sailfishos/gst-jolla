@@ -83,7 +83,7 @@ gst_hwc_sink_base_init (gpointer gclass)
           "height", GST_TYPE_INT_RANGE, 1, G_MAXINT,
           "framerate", GST_TYPE_FRACTION_RANGE, 0, 1, 100, 1, NULL));
   gst_caps_append_structure (caps,
-      gst_structure_new ("video/x-android-buffer", NULL));
+      gst_structure_new (GST_NATIVE_BUFFER_NAME, NULL));
 
   sink_template = gst_pad_template_new ("sink",
       GST_PAD_SINK, GST_PAD_ALWAYS, caps);
@@ -160,6 +160,8 @@ gst_hwc_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
 {
   GstHwcSink *sink = GST_HWC_SINK (bsink);
   GstFlowReturn ret;
+  GstStructure *s;
+  buffer_handle_t handle;
 
   GST_DEBUG_OBJECT (sink, "show frame");
 
@@ -168,7 +170,15 @@ gst_hwc_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
     return gst_hwc_sink_show_handle (sink, GST_NATIVE_BUFFER (buf)->handle);
   }
 
-  buffer_handle_t handle = gst_hwc_sink_setup_handle (sink, buf);
+  s = gst_caps_get_structure (buf->caps, 0);
+  if (!strcmp (gst_structure_get_name (s), GST_NATIVE_BUFFER_NAME)
+      && GST_BUFFER_SIZE (buf) == sizeof (buffer_handle_t)
+      && GST_BUFFER_DATA (buf)) {
+    handle = GST_BUFFER_DATA (buf);
+    return gst_hwc_sink_show_handle (sink, handle);
+  }
+
+  handle = gst_hwc_sink_setup_handle (sink, buf);
   if (!handle) {
     return GST_FLOW_ERROR;
   }
@@ -372,7 +382,7 @@ gst_hwc_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
     return FALSE;
   }
 
-  if (!strcmp (gst_structure_get_name (s), "video/x-android-buffer")) {
+  if (!strcmp (gst_structure_get_name (s), GST_NATIVE_BUFFER_NAME)) {
     /* Nothing */
   } else if (format != GST_VIDEO_FORMAT_YV12) {
     GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Can only handle YV12"), (NULL));
@@ -503,7 +513,7 @@ gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset, guint size,
   buffer_handle_t handle;
   GstHwcSink *sink = GST_HWC_SINK (bsink);
 
-  /* TODO: We need to add format to the sink caps. */
+  /* TODO: We need to add format and usage to the sink caps. */
 
   GST_DEBUG_OBJECT (sink, "buffer alloc");
 

@@ -23,6 +23,8 @@
 #include <gst/gst.h>
 #include "gstgralloc.h"
 
+#define GST_NATIVE_BUFFER_NAME "video/x-android-buffer"
+
 G_BEGIN_DECLS
 
 typedef struct _GstNativeBuffer GstNativeBuffer;
