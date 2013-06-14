@@ -19,6 +19,9 @@
 
 #include "gstnativebuffer.h"
 
+GST_DEBUG_CATEGORY_STATIC(nativebuffer_debug);
+#define GST_CAT_DEFAULT nativebuffer_debug
+
 static void gst_native_buffer_finalize (GstNativeBuffer * buf);
 
 static GstBufferClass *parent_class;
@@ -34,6 +37,8 @@ gst_native_buffer_class_init (GstNativeBufferClass * buffer_class)
 
   mo_class->finalize =
       (GstMiniObjectFinalizeFunction) gst_native_buffer_finalize;
+
+  GST_DEBUG_CATEGORY_INIT (nativebuffer_debug, "nativebuffer", 0, "GstNativeBuffer debug");
 }
 
 static void
@@ -42,19 +47,27 @@ gst_native_buffer_init (GstNativeBuffer * buf)
   buf->handle = NULL;
   buf->gralloc = NULL;
   buf->stride = 0;
+
+  GST_DEBUG_OBJECT (buf, "init");
 }
 
 static void
 gst_native_buffer_finalize (GstNativeBuffer * buf)
 {
+  GST_DEBUG_OBJECT (buf, "finalize");
+
   if (buf->finalize_callback) {
     if (buf->finalize_callback (buf->finalize_callback_data, buf)) {
       // Callback returning TRUE means it's resurrected the buffer.
+
+      GST_DEBUG_OBJECT (buf, "resurrected");
       return;
     }
   }
 
   gst_gralloc_unref (buf->gralloc);
+
+      GST_DEBUG_OBJECT (buf, "finalized");
 
   GST_MINI_OBJECT_CLASS (parent_class)->finalize (GST_MINI_OBJECT (buf));
 }
@@ -62,8 +75,11 @@ gst_native_buffer_finalize (GstNativeBuffer * buf)
 GstNativeBuffer *
 gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride)
 {
-  GstNativeBuffer *buffer =
-      (GstNativeBuffer *) gst_mini_object_new (GST_TYPE_NATIVE_BUFFER);
+  GstNativeBuffer *buffer;
+
+  buffer = (GstNativeBuffer *) gst_mini_object_new (GST_TYPE_NATIVE_BUFFER);
+
+  GST_DEBUG_OBJECT (buffer, "new");
 
   buffer->handle = handle;
   buffer->gralloc = gst_gralloc_ref (gralloc);
