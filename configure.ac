@@ -68,6 +68,41 @@ PKG_CHECK_MODULES(GST_VIDEO, [
   ])
 ])
 
+PKG_CHECK_MODULES(WL, [
+  wayland-client
+  wayland-egl
+  wayland-cursor
+], [
+  AC_SUBST(WL_CFLAGS)
+  AC_SUBST(WL_LIBS)
+], [
+  AC_MSG_ERROR([
+      wayland is missing
+  ])
+])
+
+PKG_CHECK_MODULES(EGL, [
+  egl
+], [
+  AC_SUBST(EGL_CFLAGS)
+  AC_SUBST(EGL_LIBS)
+], [
+  AC_MSG_ERROR([
+      EGL is missing
+  ])
+])
+
+PKG_CHECK_MODULES(GLES2, [
+  glesv2
+], [
+  AC_SUBST(GLES2_CFLAGS)
+  AC_SUBST(GLES2_LIBS)
+], [
+  AC_MSG_ERROR([
+      GLESv2 is missing
+  ])
+])
+
 dnl check if compiler understands -Wall (if yes, add -Wall to GST_CFLAGS)
 AC_MSG_CHECKING([to see if compiler understands -Wall])
 save_CFLAGS="$CFLAGS"
