@@ -68,16 +68,14 @@ PKG_CHECK_MODULES(GST_VIDEO, [
   ])
 ])
 
-PKG_CHECK_MODULES(WL, [
-  wayland-client
-  wayland-egl
-  wayland-cursor
+PKG_CHECK_MODULES(MGI, [
+  meego-gstreamer-interfaces-0.10
 ], [
-  AC_SUBST(WL_CFLAGS)
-  AC_SUBST(WL_LIBS)
+  AC_SUBST(MGI_CFLAGS)
+  AC_SUBST(MGI_LIBS)
 ], [
   AC_MSG_ERROR([
-      wayland is missing
+      meego-gstreamer-interfaces is missing
   ])
 ])
 
@@ -134,6 +132,7 @@ AC_CONFIG_FILES([Makefile
 		gst/gralloc/Makefile
 		gst/nativebuffer/Makefile
 		gst/hwcsink/Makefile
+		gst/droideglsink/Makefile
 		])
 AC_OUTPUT
 
