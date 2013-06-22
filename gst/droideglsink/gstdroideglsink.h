@@ -53,6 +53,7 @@ struct _GstDroidEglSink {
 
   // TODO: release on flush
   GstBuffer *last_buffer;
+  GstBuffer *acquired_buffer;
   GMutex buffer_lock;
 };
 

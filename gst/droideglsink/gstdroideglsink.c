@@ -24,21 +24,20 @@
 #include "gstdroideglsink.h"
 #include <gst/video/video.h>
 #include "gstnativebuffer.h"
+#include <gst/interfaces/meegovideotexture.h>
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
+
+#define EGL_NATIVE_BUFFER_ANDROID 0x3140
+#define EGL_IMAGE_PRESERVED_KHR   0x30D2
 
 GST_DEBUG_CATEGORY_STATIC (droideglsink_debug);
 #define GST_CAT_DEFAULT droideglsink_debug
-
-#define gst_droid_egl_sink_debug_init(ignored_parameter)					\
-  GST_DEBUG_CATEGORY_INIT (droideglsink_debug, "droidegl", 0, "Android native bufer EGL sink"); \
-
-GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
-    GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_debug_init);
 
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
 				    GST_PAD_SINK,
 				    GST_PAD_ALWAYS,
 				    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YV12 }")));
-
 
 static void gst_droid_egl_sink_finalize (GObject * object);
 static GstFlowReturn gst_droid_egl_sink_show_frame (GstVideoSink * bsink,
@@ -56,6 +55,17 @@ static buffer_handle_t gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink,
 static gboolean gst_droid_egl_sink_destroy_buffer (void *data,
     GstNativeBuffer * buffer);
 static void gst_droid_egl_sink_destroy_handle (GstDroidEglSink * sink, buffer_handle_t handle, GstGralloc * gralloc);
+
+static void gst_droid_egl_sink_do_init(GType type);
+static void gst_droid_egl_sink_implements_interface_init(GstImplementsInterfaceClass *klass);
+static void gst_droid_egl_sink_videotexture_interface_init(MeegoGstVideoTextureClass *iface);
+static gboolean gst_droid_egl_sink_interfaces_supported (GstDroidEglSink * sink, GType type);
+static gboolean gst_droid_egl_sink_acquire_frame (MeegoGstVideoTexture * bsink, gint frame);
+static gboolean gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink, gint target, gint dontcare);
+static void gst_droid_egl_sink_release_frame (MeegoGstVideoTexture * bsink, int dontcare, gpointer sync);
+
+GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
+    GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
 
 static void
 gst_droid_egl_sink_base_init (gpointer gclass)
@@ -128,6 +138,8 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
 
   g_mutex_unlock (&sink->buffer_lock);
 
+  meego_gst_video_texture_frame_ready (MEEGO_GST_VIDEO_TEXTURE (sink), 0);
+
   return GST_FLOW_OK;
 }
 
@@ -139,6 +151,7 @@ gst_droid_egl_sink_start (GstBaseSink * bsink)
   GST_DEBUG_OBJECT (sink, "start");
 
   sink->last_buffer = NULL;
+  sink->acquired_buffer = NULL;
 
   sink->gralloc = gst_gralloc_new ();
   if (!sink->gralloc) {
@@ -300,9 +313,8 @@ gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink,
 				 int *stride)
 {
   int format = HAL_PIXEL_FORMAT_YV12;
-  int usage = GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_RARELY
-      | GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB
-      | GRALLOC_USAGE_EXTERNAL_DISP;
+  int usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN
+    | GRALLOC_USAGE_HW_TEXTURE;
 
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
@@ -345,3 +357,95 @@ gst_droid_egl_sink_destroy_buffer (void *data, GstNativeBuffer * buffer)
   return FALSE;
 }
 
+static void gst_droid_egl_sink_do_init(GType type) {
+  GST_DEBUG_CATEGORY_INIT (droideglsink_debug, "droidegl", 0, "Android native bufer EGL sink");
+
+  static const GInterfaceInfo implements_iface_info = {
+    (GInterfaceInitFunc) gst_droid_egl_sink_implements_interface_init,
+    NULL,
+    NULL,
+  };
+
+  static const GInterfaceInfo vt_iface_info = {
+    (GInterfaceInitFunc) gst_droid_egl_sink_videotexture_interface_init,
+    NULL,
+    NULL,
+  };
+
+  g_type_add_interface_static (type, GST_TYPE_IMPLEMENTS_INTERFACE,
+			       &implements_iface_info);
+
+  g_type_add_interface_static (type, MEEGO_GST_TYPE_VIDEO_TEXTURE,
+			       &vt_iface_info);
+}
+
+static void
+gst_droid_egl_sink_implements_interface_init(GstImplementsInterfaceClass *klass)
+{
+  klass->supported =
+    (gboolean (*)(GstImplementsInterface *,
+		  GType)) gst_droid_egl_sink_interfaces_supported;
+}
+
+static void
+gst_droid_egl_sink_videotexture_interface_init(MeegoGstVideoTextureClass *iface)
+{
+  iface->acquire_frame = gst_droid_egl_sink_acquire_frame;
+  iface->bind_frame = gst_droid_egl_sink_bind_frame;
+  iface->release_frame = gst_droid_egl_sink_release_frame;
+}
+
+static gboolean
+gst_droid_egl_sink_interfaces_supported (GstDroidEglSink * sink, GType type)
+{
+  return (type == MEEGO_GST_TYPE_VIDEO_TEXTURE);
+}
+
+static gboolean
+gst_droid_egl_sink_acquire_frame (MeegoGstVideoTexture * bsink, gint frame)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  gboolean ret;
+
+  GST_DEBUG_OBJECT (sink, "acquire frame");
+
+  g_mutex_lock (&sink->buffer_lock);
+
+  ret = (sink->last_buffer != NULL);
+
+  if (sink->last_buffer) {
+    sink->acquired_buffer = gst_buffer_ref (sink->last_buffer);
+  }
+
+  g_mutex_unlock (&sink->buffer_lock);
+
+  return ret;
+}
+
+static gboolean
+gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink, gint target, gint dontcare)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+
+  GST_DEBUG_OBJECT (sink, "bind frame: 0x%x %d", target, dontcare);
+
+  if (dontcare == -1) {
+    glBindTexture (target, 0);
+    return TRUE;
+  }
+
+  // TODO:
+  return TRUE;
+}
+
+static void
+gst_droid_egl_sink_release_frame (MeegoGstVideoTexture * bsink, int dontcare, gpointer sync)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+
+  GST_DEBUG_OBJECT (sink, "release frame");
+
+  gst_buffer_unref (sink->acquired_buffer);
+
+  sink->acquired_buffer = NULL;
+}
