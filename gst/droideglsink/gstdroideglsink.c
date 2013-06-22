@@ -30,6 +30,9 @@
 #define EGL_NATIVE_BUFFER_ANDROID 0x3140
 #define EGL_IMAGE_PRESERVED_KHR   0x30D2
 
+#define BUFFER_LOCK_USAGE GRALLOC_USAGE_SW_READ_RARELY | GRALLOC_USAGE_SW_WRITE_OFTEN
+#define BUFFER_ALLOC_USAGE GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE
+
 GST_DEBUG_CATEGORY_STATIC (droideglsink_debug);
 #define GST_CAT_DEFAULT droideglsink_debug
 
@@ -298,7 +301,6 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   buffer_handle_t handle;
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   void *data = NULL;
-  int usage = GRALLOC_USAGE_SW_READ_RARELY | GRALLOC_USAGE_SW_WRITE_OFTEN;
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
   GstDroidEglBuffer *buffer;
 
@@ -326,7 +328,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
 
   if (buffer) {
     int err = sink->gralloc->gralloc->lock (sink->gralloc->gralloc,
-        buffer->buff->handle, usage, 0, 0, vsink->width,
+        buffer->buff->handle, BUFFER_LOCK_USAGE, 0, 0, vsink->width,
         vsink->height, &data);
     if (err != 0) {
 
@@ -360,7 +362,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
     return GST_FLOW_ERROR;
   }
 
-  if (sink->gralloc->gralloc->lock (sink->gralloc->gralloc, handle, usage, 0, 0,
+  if (sink->gralloc->gralloc->lock (sink->gralloc->gralloc, handle, BUFFER_LOCK_USAGE, 0, 0,
           vsink->width, vsink->height, &data) != 0) {
 
     gst_droid_egl_sink_destroy_handle (sink, handle, sink->gralloc);
@@ -381,9 +383,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   buffer->native->handle = handle;
   // Keep in sync with gst_droid_egl_sink_alloc_handle();
   buffer->native->format = HAL_PIXEL_FORMAT_YV12;
-  buffer->native->usage =
-      GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN |
-      GRALLOC_USAGE_HW_TEXTURE;
+  buffer->native->usage = BUFFER_ALLOC_USAGE;
 
   buffer->native->common.incRef = gst_droid_egl_sink_native_buffer_ref;
   buffer->native->common.decRef = gst_droid_egl_sink_native_buffer_unref;
@@ -420,16 +420,13 @@ static buffer_handle_t
 gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
 {
   int format = HAL_PIXEL_FORMAT_YV12;
-  int usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN
-      | GRALLOC_USAGE_HW_TEXTURE;
-
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
   GST_DEBUG_OBJECT (sink, "alloc handle");
 
   buffer_handle_t handle =
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
-      format, usage, stride);
+      format, BUFFER_ALLOC_USAGE, stride);
 
   if (!handle) {
     GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
