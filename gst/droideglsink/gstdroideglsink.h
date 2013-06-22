@@ -24,6 +24,11 @@
 #include <gst/video/video.h>
 #include <gst/video/gstvideosink.h>
 #include "gstgralloc.h"
+#include "gstnativebuffer.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 G_BEGIN_DECLS
 
@@ -41,6 +46,16 @@ G_BEGIN_DECLS
 typedef struct _GstDroidEglSink GstDroidEglSink;
 typedef struct _GstDroidEglSinkClass GstDroidEglSinkClass;
 
+typedef struct {
+  GstNativeBuffer *buff;
+  struct ANativeWindowBuffer *native;
+  GLuint texture;
+  EGLImageKHR image;
+  gboolean acquired;
+  gboolean free;
+  gboolean locked;
+} GstDroidEglBuffer;
+
 struct _GstDroidEglSink {
   GstVideoSink parent;
 
@@ -51,10 +66,15 @@ struct _GstDroidEglSink {
 
   GstVideoFormat format;
 
+  GPtrArray *buffers;
+
   // TODO: release on flush
-  GstBuffer *last_buffer;
-  GstBuffer *acquired_buffer;
+  GstDroidEglBuffer *last_buffer;
+  GstDroidEglBuffer *acquired_buffer;
   GMutex buffer_lock;
+
+  PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
+  PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 };
 
 struct _GstDroidEglSinkClass {

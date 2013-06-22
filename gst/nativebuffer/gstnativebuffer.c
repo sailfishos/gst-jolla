@@ -67,7 +67,7 @@ gst_native_buffer_finalize (GstNativeBuffer * buf)
 
   gst_gralloc_unref (buf->gralloc);
 
-      GST_DEBUG_OBJECT (buf, "finalized");
+  GST_DEBUG_OBJECT (buf, "finalized");
 
   GST_MINI_OBJECT_CLASS (parent_class)->finalize (GST_MINI_OBJECT (buf));
 }
