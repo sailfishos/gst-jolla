@@ -65,6 +65,7 @@ struct _GstDroidEglSink {
   int fps_d;
 
   GstVideoFormat format;
+  int hal_format;
 
   GPtrArray *buffers;
 

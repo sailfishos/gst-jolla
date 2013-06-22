@@ -130,6 +130,7 @@ gst_droid_egl_sink_init (GstDroidEglSink * sink, GstDroidEglSinkClass * gclass)
 
   sink->gralloc = NULL;
   sink->format = GST_VIDEO_FORMAT_UNKNOWN;
+  sink->hal_format = 0;
 
   g_mutex_init (&sink->buffer_lock);
 
@@ -268,6 +269,7 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   sink->format = format;
   sink->fps_n = fps_n;
   sink->fps_d = fps_d;
+  sink->hal_format = HAL_PIXEL_FORMAT_YV12;
 
   return TRUE;
 }
@@ -381,8 +383,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   buffer->native->height = vsink->height;
   buffer->native->stride = stride;
   buffer->native->handle = handle;
-  // Keep in sync with gst_droid_egl_sink_alloc_handle();
-  buffer->native->format = HAL_PIXEL_FORMAT_YV12;
+  buffer->native->format = sink->hal_format;
   buffer->native->usage = BUFFER_ALLOC_USAGE;
 
   buffer->native->common.incRef = gst_droid_egl_sink_native_buffer_ref;
@@ -419,14 +420,13 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
 static buffer_handle_t
 gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
 {
-  int format = HAL_PIXEL_FORMAT_YV12;
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
   GST_DEBUG_OBJECT (sink, "alloc handle");
 
   buffer_handle_t handle =
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
-      format, BUFFER_ALLOC_USAGE, stride);
+      sink->hal_format, BUFFER_ALLOC_USAGE, stride);
 
   if (!handle) {
     GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
