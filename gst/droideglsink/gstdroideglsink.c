@@ -29,6 +29,7 @@
 
 #define EGL_NATIVE_BUFFER_ANDROID 0x3140
 #define EGL_IMAGE_PRESERVED_KHR   0x30D2
+#define HAL_PIXEL_FORMAT_YCbCr_420_SP 0x109
 
 #define BUFFER_LOCK_USAGE GRALLOC_USAGE_SW_READ_RARELY | GRALLOC_USAGE_SW_WRITE_OFTEN
 #define BUFFER_ALLOC_USAGE GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE
@@ -39,7 +40,7 @@ GST_DEBUG_CATEGORY_STATIC (droideglsink_debug);
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YV12 }")));
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YV12, NV21, NV12 }")));
 
 static void gst_droid_egl_sink_finalize (GObject * object);
 static GstFlowReturn gst_droid_egl_sink_show_frame (GstVideoSink * bsink,
@@ -85,6 +86,7 @@ static void gst_droid_egl_sink_native_buffer_ref (struct android_native_base_t
     *base);
 static void gst_droid_egl_sink_native_buffer_unref (struct android_native_base_t
     *base);
+static int gst_droid_egl_sink_get_hal_format (GstVideoFormat format);
 
 GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
     GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
@@ -229,6 +231,7 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   int width, height;
   int fps_n, fps_d;
   GstVideoFormat format = GST_VIDEO_FORMAT_UNKNOWN;
+  int hal_format = -1;
 
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstVideoSink *vsink = GST_VIDEO_SINK (bsink);
@@ -258,8 +261,10 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
     return FALSE;
   }
 
-  if (format != GST_VIDEO_FORMAT_YV12) {
-    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Can only handle YV12"), (NULL));
+  hal_format = gst_droid_egl_sink_get_hal_format (format);
+
+  if (hal_format == -1) {
+    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Unsupported color format 0x%x", format), (NULL));
     return FALSE;
   }
 
@@ -269,7 +274,7 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   sink->format = format;
   sink->fps_n = fps_n;
   sink->fps_d = fps_d;
-  sink->hal_format = HAL_PIXEL_FORMAT_YV12;
+  sink->hal_format = hal_format;
 
   return TRUE;
 }
@@ -666,4 +671,19 @@ static void
 gst_droid_egl_sink_native_buffer_unref (struct android_native_base_t *base)
 {
 
+}
+
+static int
+gst_droid_egl_sink_get_hal_format (GstVideoFormat format)
+{
+  switch (format) {
+  case GST_VIDEO_FORMAT_YV12:
+    return HAL_PIXEL_FORMAT_YV12;
+  case GST_VIDEO_FORMAT_NV21:
+    return HAL_PIXEL_FORMAT_YCrCb_420_SP;
+  case GST_VIDEO_FORMAT_NV12:
+    return HAL_PIXEL_FORMAT_YCbCr_420_SP;
+  default:
+    return -1;
+  }
 }
