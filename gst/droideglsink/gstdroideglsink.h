@@ -54,6 +54,7 @@ typedef struct {
   gboolean acquired;
   gboolean free;
   gboolean locked;
+  gboolean drop;
 } GstDroidEglBuffer;
 
 struct _GstDroidEglSink {

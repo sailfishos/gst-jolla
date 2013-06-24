@@ -56,7 +56,7 @@ GstFlowReturn gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink,
 
 static buffer_handle_t gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink,
     int *stride);
-static gboolean gst_droid_egl_sink_destroy_buffer (void *data,
+static gboolean gst_droid_egl_sink_recycle_buffer (void *data,
     GstNativeBuffer * buffer);
 static void gst_droid_egl_sink_destroy_handle (GstDroidEglSink * sink,
     buffer_handle_t handle, GstGralloc * gralloc);
@@ -89,6 +89,8 @@ static void gst_droid_egl_sink_native_buffer_unref (struct android_native_base_t
 static int gst_droid_egl_sink_get_hal_format (GstVideoFormat format);
 static GstDroidEglBuffer *gst_droid_egl_sink_alloc_buffer (GstDroidEglSink *
     sink, buffer_handle_t handle, int stride);
+static void gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
+    sink, GstDroidEglBuffer * buffer);
 
 GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
     GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
@@ -430,7 +432,7 @@ gst_droid_egl_sink_destroy_handle (GstDroidEglSink * sink,
 }
 
 static gboolean
-gst_droid_egl_sink_destroy_buffer (void *data, GstNativeBuffer * buffer)
+gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
 {
   GstDroidEglSink *sink = (GstDroidEglSink *) data;
   GstDroidEglBuffer *buff;
@@ -451,15 +453,24 @@ gst_droid_egl_sink_destroy_buffer (void *data, GstNativeBuffer * buffer)
     buff->locked = FALSE;
   }
 
-  g_mutex_lock (&sink->buffer_lock);
+  if (buff->drop) {
+    g_mutex_lock (&sink->buffer_lock);
+    g_ptr_array_remove (sink->buffers, buff);
+    g_mutex_unlock (&sink->buffer_lock);
+    gst_droid_egl_sink_destroy_buffer (sink, buff);
 
-  buff->free = TRUE;
+    return FALSE;
+  } else {
+    g_mutex_lock (&sink->buffer_lock);
 
-  gst_buffer_ref (GST_BUFFER (buff->buff));
+    buff->free = TRUE;
 
-  g_mutex_unlock (&sink->buffer_lock);
+    gst_buffer_ref (GST_BUFFER (buff->buff));
 
-  return TRUE;
+    g_mutex_unlock (&sink->buffer_lock);
+
+    return TRUE;
+  }
 }
 
 static int
@@ -693,13 +704,32 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
 
   buffer->buff = gst_native_buffer_new (handle, sink->gralloc, stride);
   buffer->buff->finalize_callback_data = gst_object_ref (sink);
-  buffer->buff->finalize_callback = gst_droid_egl_sink_destroy_buffer;
+  buffer->buff->finalize_callback = gst_droid_egl_sink_recycle_buffer;
 
   buffer->texture = 0;
   buffer->image = EGL_NO_IMAGE_KHR;
   buffer->free = FALSE;
   buffer->locked = TRUE;
   buffer->acquired = FALSE;
+  buffer->drop = FALSE;
 
   return buffer;
+}
+
+static void
+gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
+    sink, GstDroidEglBuffer * buffer)
+{
+  GST_DEBUG_OBJECT (sink, "destroy buffer");
+
+  if (buffer->texture) {
+    // TODO:
+  }
+
+  if (buffer->image) {
+    // TODO:
+  }
+
+  g_free (buffer->native);
+  g_free (buffer);
 }
