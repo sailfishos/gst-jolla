@@ -80,7 +80,7 @@ static void gst_droid_egl_sink_release_frame (MeegoGstVideoTexture * bsink,
 static int gst_droid_egl_sink_find_buffer_unlocked (GstDroidEglSink * sink,
     GstBuffer * buffer);
 static GstDroidEglBuffer
-    *gst_droid_egl_sink_find_free_buffer_unlocked (GstDroidEglSink * sink);
+    * gst_droid_egl_sink_find_free_buffer_unlocked (GstDroidEglSink * sink);
 
 static void gst_droid_egl_sink_native_buffer_ref (struct android_native_base_t
     *base);
@@ -264,7 +264,8 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   hal_format = gst_droid_egl_sink_get_hal_format (format);
 
   if (hal_format == -1) {
-    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Unsupported color format 0x%x", format), (NULL));
+    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Unsupported color format 0x%x",
+            format), (NULL));
     return FALSE;
   }
 
@@ -369,8 +370,8 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
     return GST_FLOW_ERROR;
   }
 
-  if (sink->gralloc->gralloc->lock (sink->gralloc->gralloc, handle, BUFFER_LOCK_USAGE, 0, 0,
-          vsink->width, vsink->height, &data) != 0) {
+  if (sink->gralloc->gralloc->lock (sink->gralloc->gralloc, handle,
+          BUFFER_LOCK_USAGE, 0, 0, vsink->width, vsink->height, &data) != 0) {
 
     gst_droid_egl_sink_destroy_handle (sink, handle, sink->gralloc);
 
@@ -614,8 +615,7 @@ gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink, gint target,
         (EGLClientBuffer) buffer->native, eglImgAttrs);
 
     if (!sink->glEGLImageTargetTexture2DOES) {
-      sink->glEGLImageTargetTexture2DOES =
-          (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)
+      sink->glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)
           eglGetProcAddress ("glEGLImageTargetTexture2DOES");
     }
 
@@ -677,13 +677,13 @@ static int
 gst_droid_egl_sink_get_hal_format (GstVideoFormat format)
 {
   switch (format) {
-  case GST_VIDEO_FORMAT_YV12:
-    return HAL_PIXEL_FORMAT_YV12;
-  case GST_VIDEO_FORMAT_NV21:
-    return HAL_PIXEL_FORMAT_YCrCb_420_SP;
-  case GST_VIDEO_FORMAT_NV12:
-    return HAL_PIXEL_FORMAT_YCbCr_420_SP;
-  default:
-    return -1;
+    case GST_VIDEO_FORMAT_YV12:
+      return HAL_PIXEL_FORMAT_YV12;
+    case GST_VIDEO_FORMAT_NV21:
+      return HAL_PIXEL_FORMAT_YCrCb_420_SP;
+    case GST_VIDEO_FORMAT_NV12:
+      return HAL_PIXEL_FORMAT_YCbCr_420_SP;
+    default:
+      return -1;
   }
 }
