@@ -702,7 +702,8 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
   memset (buffer->native->common.reserved, 0,
       sizeof (buffer->native->common.reserved));
 
-  buffer->buff = gst_native_buffer_new (handle, sink->gralloc, stride);
+  buffer->buff =
+      gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
   buffer->buff->finalize_callback_data = gst_object_ref (sink);
   buffer->buff->finalize_callback = gst_droid_egl_sink_recycle_buffer;
 
