@@ -19,7 +19,7 @@
 
 #include "gstnativebuffer.h"
 
-GST_DEBUG_CATEGORY_STATIC(nativebuffer_debug);
+GST_DEBUG_CATEGORY_STATIC (nativebuffer_debug);
 #define GST_CAT_DEFAULT nativebuffer_debug
 
 static void gst_native_buffer_finalize (GstNativeBuffer * buf);
@@ -38,7 +38,8 @@ gst_native_buffer_class_init (GstNativeBufferClass * buffer_class)
   mo_class->finalize =
       (GstMiniObjectFinalizeFunction) gst_native_buffer_finalize;
 
-  GST_DEBUG_CATEGORY_INIT (nativebuffer_debug, "nativebuffer", 0, "GstNativeBuffer debug");
+  GST_DEBUG_CATEGORY_INIT (nativebuffer_debug, "nativebuffer", 0,
+      "GstNativeBuffer debug");
 }
 
 static void
@@ -73,7 +74,8 @@ gst_native_buffer_finalize (GstNativeBuffer * buf)
 }
 
 GstNativeBuffer *
-gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride)
+gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride,
+    int usage)
 {
   GstNativeBuffer *buffer;
 
@@ -84,6 +86,7 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride)
   buffer->handle = handle;
   buffer->gralloc = gst_gralloc_ref (gralloc);
   buffer->stride = stride;
+  buffer->usage = usage;
 
   GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (handle);
   GST_BUFFER_DATA (GST_BUFFER (buffer)) = (guint8 *) handle;

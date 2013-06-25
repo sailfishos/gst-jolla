@@ -43,6 +43,7 @@ struct _GstNativeBuffer {
   buffer_handle_t handle;
   GstGralloc *gralloc;
   int stride;
+  int usage;
 
   gboolean (* finalize_callback) (void * data, GstNativeBuffer * buffer);
   void *finalize_callback_data;
@@ -54,7 +55,7 @@ struct _GstNativeBufferClass {
 
 GType           gst_native_buffer_get_type           (void);
 
-GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int stride);
+GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int stride, int usage);
 
 G_END_DECLS
 
