@@ -68,6 +68,8 @@ static buffer_handle_t gst_hwc_sink_alloc_handle (GstHwcSink * sink,
 static gboolean gst_hwc_sink_destroy_buffer (void *data,
     GstNativeBuffer * buffer);
 
+#define BUFFER_ALLOC_USAGE GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_RARELY | GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_EXTERNAL_DISP
+
 static GstPadTemplate *sink_template;
 
 static void
@@ -136,15 +138,12 @@ static buffer_handle_t
 gst_hwc_sink_alloc_handle (GstHwcSink * sink, int *stride)
 {
   int format = HAL_PIXEL_FORMAT_YV12;
-  int usage = GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_RARELY
-      | GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB
-      | GRALLOC_USAGE_EXTERNAL_DISP;
 
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
   buffer_handle_t handle =
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
-      format, usage, stride);
+      format, BUFFER_ALLOC_USAGE, stride);
 
   if (!handle) {
     GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
@@ -532,7 +531,7 @@ gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset, guint size,
   }
 
   GstNativeBuffer *buffer =
-      gst_native_buffer_new (handle, sink->gralloc, stride);
+      gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
   buffer->finalize_callback_data = gst_object_ref (sink);
   buffer->finalize_callback = gst_hwc_sink_destroy_buffer;
 
