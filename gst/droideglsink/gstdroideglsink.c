@@ -599,6 +599,11 @@ gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink, gint target,
           (PFNEGLCREATEIMAGEKHRPROC) eglGetProcAddress ("eglCreateImageKHR");
     }
 
+    if (!sink->eglDestroyImageKHR) {
+      sink->eglDestroyImageKHR =
+          (PFNEGLDESTROYIMAGEKHRPROC) eglGetProcAddress ("eglDestroyImageKHR");
+    }
+
     buffer->image =
         sink->eglCreateImageKHR (eglGetDisplay (EGL_DEFAULT_DISPLAY),
         EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
@@ -730,7 +735,9 @@ gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
   }
 
   if (buffer->image) {
-    // TODO:
+    sink->eglDestroyImageKHR (eglGetDisplay (EGL_DEFAULT_DISPLAY),
+        buffer->image);
+    buffer->image = EGL_NO_IMAGE_KHR;
   }
 
   g_free (buffer->native);

@@ -76,6 +76,7 @@ struct _GstDroidEglSink {
   GMutex buffer_lock;
 
   PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
+  PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;
   PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 };
 
