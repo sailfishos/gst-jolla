@@ -91,6 +91,10 @@ static GstDroidEglBuffer *gst_droid_egl_sink_alloc_buffer (GstDroidEglSink *
     sink, buffer_handle_t handle, int stride);
 static void gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
     sink, GstDroidEglBuffer * buffer);
+static GstDroidEglBuffer *gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink
+    * sink);
+static void gst_droid_egl_sink_set_native_buffer (GstDroidEglBuffer * buffer,
+    GstNativeBuffer * native);
 
 GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
     GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
@@ -684,13 +688,12 @@ gst_droid_egl_sink_get_hal_format (GstVideoFormat format)
 }
 
 static GstDroidEglBuffer *
-gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
-    int stride)
+gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink * sink)
 {
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
   GstDroidEglBuffer *buffer;
 
-  GST_DEBUG_OBJECT (sink, "alloc buffer");
+  GST_DEBUG_OBJECT (sink, "alloc buffer empty");
 
   buffer = g_malloc (sizeof (GstDroidEglBuffer));
   buffer->native = g_malloc (sizeof (struct ANativeWindowBuffer));
@@ -698,8 +701,6 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
   buffer->native->common.version = sizeof (struct ANativeWindowBuffer);
   buffer->native->width = vsink->width;
   buffer->native->height = vsink->height;
-  buffer->native->stride = stride;
-  buffer->native->handle = handle;
   buffer->native->format = sink->hal_format;
   buffer->native->usage = BUFFER_ALLOC_USAGE;
 
@@ -709,10 +710,7 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
   memset (buffer->native->common.reserved, 0,
       sizeof (buffer->native->common.reserved));
 
-  buffer->buff =
-      gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
-  buffer->buff->finalize_callback_data = gst_object_ref (sink);
-  buffer->buff->finalize_callback = gst_droid_egl_sink_recycle_buffer;
+  buffer->buff = NULL;
 
   buffer->texture = 0;
   buffer->image = EGL_NO_IMAGE_KHR;
@@ -720,6 +718,38 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
   buffer->locked = TRUE;
   buffer->acquired = FALSE;
   buffer->drop = FALSE;
+
+  return buffer;
+}
+
+static void
+gst_droid_egl_sink_set_native_buffer (GstDroidEglBuffer * buffer,
+    GstNativeBuffer * native)
+{
+  g_assert (buffer->buff == NULL);
+
+  buffer->buff = native;
+  buffer->native->stride = native->stride;
+  buffer->native->usage = native->usage;
+  buffer->native->handle = native->handle;
+}
+
+static GstDroidEglBuffer *
+gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
+    int stride)
+{
+  GstDroidEglBuffer *buffer;
+  GstNativeBuffer *buff;
+
+  GST_DEBUG_OBJECT (sink, "alloc buffer");
+
+  buffer = gst_droid_egl_sink_alloc_buffer_empty (sink);
+  buff =
+      gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
+  gst_droid_egl_sink_set_native_buffer (buffer, buff);
+
+  buff->finalize_callback_data = gst_object_ref (sink);
+  buff->finalize_callback = gst_droid_egl_sink_recycle_buffer;
 
   return buffer;
 }
