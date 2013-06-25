@@ -48,8 +48,6 @@ static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
 static void gst_droid_egl_sink_finalize (GObject * object);
 static GstFlowReturn gst_droid_egl_sink_show_frame (GstVideoSink * bsink,
     GstBuffer * buf);
-static GstFlowReturn gst_droid_egl_sink_show_frame_foreign (GstDroidEglSink *
-    sink, GstBuffer * buf);
 static gboolean gst_droid_egl_sink_start (GstBaseSink * bsink);
 static gboolean gst_droid_egl_sink_stop (GstBaseSink * bsink);
 static gboolean gst_droid_egl_sink_set_caps (GstBaseSink * bsink,
@@ -180,8 +178,8 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   x = gst_droid_egl_sink_find_buffer_unlocked (sink, buf);
   if (x == -1) {
     g_mutex_unlock (&sink->buffer_lock);
-
-    return gst_droid_egl_sink_show_frame_foreign (sink, buf);
+    GST_ELEMENT_ERROR (sink, STREAM, FAILED, ("Unknown buffer"), (NULL));
+    return GST_FLOW_ERROR;
   }
 
   buffer = sink->buffers->pdata[x];
@@ -195,53 +193,6 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   if (old_buffer) {
     gst_buffer_unref (GST_BUFFER (old_buffer->buff));
   }
-
-  meego_gst_video_texture_frame_ready (MEEGO_GST_VIDEO_TEXTURE (sink), x);
-
-  return GST_FLOW_OK;
-}
-
-static GstFlowReturn
-gst_droid_egl_sink_show_frame_foreign (GstDroidEglSink * sink, GstBuffer * buf)
-{
-  GstDroidEglBuffer *buffer;
-  GstDroidEglBuffer *old_buffer;
-  int x;
-
-  GST_DEBUG_OBJECT (sink, "show frame foreign");
-
-  if (!GST_IS_NATIVE_BUFFER (buf)) {
-    GST_ELEMENT_ERROR (sink, STREAM, FAILED,
-        ("Only foreign native buffers are supported"), (NULL));
-    return GST_FLOW_ERROR;
-  }
-
-  /* We will simply create a buffer that we can render and drop it after rendering. */
-  buffer = gst_droid_egl_sink_alloc_buffer_empty (sink);
-  buffer->drop = TRUE;
-  gst_droid_egl_sink_set_native_buffer (buffer, GST_NATIVE_BUFFER (buf));
-
-  gst_buffer_ref (buf);
-
-  g_mutex_lock (&sink->buffer_lock);
-
-  old_buffer = sink->last_buffer;
-  sink->last_buffer = buffer;
-  gst_buffer_ref (GST_BUFFER (sink->last_buffer->buff));
-
-  x = sink->buffers->len;
-
-  g_ptr_array_add (sink->buffers, buffer);
-
-  g_mutex_unlock (&sink->buffer_lock);
-
-  if (old_buffer) {
-    GST_LOG_OBJECT (sink, "unref old buffer %p (%p)", old_buffer->buff,
-        old_buffer);
-    gst_buffer_unref (GST_BUFFER (old_buffer->buff));
-  }
-
-  GST_DEBUG_OBJECT (sink, "done with foreign buffer %p (%p)", buf, buffer);
 
   meego_gst_video_texture_frame_ready (MEEGO_GST_VIDEO_TEXTURE (sink), x);
 
