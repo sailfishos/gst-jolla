@@ -459,6 +459,8 @@ gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
     g_mutex_unlock (&sink->buffer_lock);
     gst_droid_egl_sink_destroy_buffer (sink, buff);
 
+    gst_object_unref (sink);
+
     return FALSE;
   } else {
     g_mutex_lock (&sink->buffer_lock);
