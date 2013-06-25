@@ -98,6 +98,8 @@ static GstDroidEglBuffer *gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink
     * sink);
 static void gst_droid_egl_sink_set_native_buffer (GstDroidEglBuffer * buffer,
     GstNativeBuffer * native);
+static gboolean gst_droid_egl_sink_event (GstBaseSink * bsink,
+    GstEvent * event);
 
 GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
     GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
@@ -132,6 +134,7 @@ gst_droid_egl_sink_class_init (GstDroidEglSinkClass * klass)
   basesink_class->get_times = GST_DEBUG_FUNCPTR (gst_droid_egl_sink_get_times);
   basesink_class->buffer_alloc =
       GST_DEBUG_FUNCPTR (gst_droid_egl_sink_buffer_alloc);
+  basesink_class->event = GST_DEBUG_FUNCPTR (gst_droid_egl_sink_event);
 }
 
 static void
@@ -805,4 +808,36 @@ gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
 
   g_free (buffer->native);
   g_free (buffer);
+}
+
+static gboolean
+gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglBuffer *old_buffer;
+
+  GST_DEBUG_OBJECT (sink, "event %" GST_PTR_FORMAT, event);
+
+  switch (GST_EVENT_TYPE (event)) {
+    case GST_EVENT_FLUSH_START:
+    case GST_EVENT_FLUSH_STOP:
+    case GST_EVENT_EOS:
+      break;
+    default:
+      return FALSE;
+  }
+
+  g_mutex_lock (&sink->buffer_lock);
+  old_buffer = sink->last_buffer;
+  old_buffer = NULL;
+
+  g_mutex_unlock (&sink->buffer_lock);
+
+  if (old_buffer) {
+    gst_buffer_unref (GST_BUFFER (old_buffer->buff));
+  }
+
+  /* We will simply gamble and not touch the acauired_buffer and hope
+     application will just release it ASAP. */
+  return TRUE;
 }
