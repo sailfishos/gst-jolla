@@ -40,11 +40,16 @@ GST_DEBUG_CATEGORY_STATIC (droideglsink_debug);
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_YUV ("{ YV12, NV21, NV12 }")));
+    GST_STATIC_CAPS (GST_NATIVE_BUFFER_NAME ","
+        "framerate = (fraction) [ 0, MAX ], "
+        "width = (int) [ 1, MAX ], " "height = (int) [ 1, MAX ] ;"
+        GST_VIDEO_CAPS_YUV ("{ YV12, NV21, NV12 }")));
 
 static void gst_droid_egl_sink_finalize (GObject * object);
 static GstFlowReturn gst_droid_egl_sink_show_frame (GstVideoSink * bsink,
     GstBuffer * buf);
+static GstFlowReturn gst_droid_egl_sink_show_frame_foreign (GstDroidEglSink *
+    sink, GstBuffer * buf);
 static gboolean gst_droid_egl_sink_start (GstBaseSink * bsink);
 static gboolean gst_droid_egl_sink_stop (GstBaseSink * bsink);
 static gboolean gst_droid_egl_sink_set_caps (GstBaseSink * bsink,
@@ -173,7 +178,11 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   g_mutex_lock (&sink->buffer_lock);
 
   x = gst_droid_egl_sink_find_buffer_unlocked (sink, buf);
-  g_assert (x != -1);
+  if (x == -1) {
+    g_mutex_unlock (&sink->buffer_lock);
+
+    return gst_droid_egl_sink_show_frame_foreign (sink, buf);
+  }
 
   buffer = sink->buffers->pdata[x];
 
@@ -186,6 +195,53 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   if (old_buffer) {
     gst_buffer_unref (GST_BUFFER (old_buffer->buff));
   }
+
+  meego_gst_video_texture_frame_ready (MEEGO_GST_VIDEO_TEXTURE (sink), x);
+
+  return GST_FLOW_OK;
+}
+
+static GstFlowReturn
+gst_droid_egl_sink_show_frame_foreign (GstDroidEglSink * sink, GstBuffer * buf)
+{
+  GstDroidEglBuffer *buffer;
+  GstDroidEglBuffer *old_buffer;
+  int x;
+
+  GST_DEBUG_OBJECT (sink, "show frame foreign");
+
+  if (!GST_IS_NATIVE_BUFFER (buf)) {
+    GST_ELEMENT_ERROR (sink, STREAM, FAILED,
+        ("Only foreign native buffers are supported"), (NULL));
+    return GST_FLOW_ERROR;
+  }
+
+  /* We will simply create a buffer that we can render and drop it after rendering. */
+  buffer = gst_droid_egl_sink_alloc_buffer_empty (sink);
+  buffer->drop = TRUE;
+  gst_droid_egl_sink_set_native_buffer (buffer, GST_NATIVE_BUFFER (buf));
+
+  gst_buffer_ref (buf);
+
+  g_mutex_lock (&sink->buffer_lock);
+
+  old_buffer = sink->last_buffer;
+  sink->last_buffer = buffer;
+  gst_buffer_ref (GST_BUFFER (sink->last_buffer->buff));
+
+  x = sink->buffers->len;
+
+  g_ptr_array_add (sink->buffers, buffer);
+
+  g_mutex_unlock (&sink->buffer_lock);
+
+  if (old_buffer) {
+    GST_LOG_OBJECT (sink, "unref old buffer %p (%p)", old_buffer->buff,
+        old_buffer);
+    gst_buffer_unref (GST_BUFFER (old_buffer->buff));
+  }
+
+  GST_DEBUG_OBJECT (sink, "done with foreign buffer %p (%p)", buf, buffer);
 
   meego_gst_video_texture_frame_ready (MEEGO_GST_VIDEO_TEXTURE (sink), x);
 
@@ -240,7 +296,7 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   int fps_n, fps_d;
   GstVideoFormat format = GST_VIDEO_FORMAT_UNKNOWN;
   int hal_format = -1;
-
+  gboolean is_native = FALSE;
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstVideoSink *vsink = GST_VIDEO_SINK (bsink);
 
@@ -251,6 +307,14 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   }
 
   GST_DEBUG_OBJECT (sink, "set caps %" GST_PTR_FORMAT, caps);
+
+  if (!strcmp (gst_structure_get_name (gst_caps_get_structure (caps, 0)),
+          GST_NATIVE_BUFFER_NAME)) {
+    /* We have native buffer. */
+    is_native = TRUE;
+
+    GST_DEBUG_OBJECT (sink, "native format");
+  }
 
   if (!gst_video_format_parse_caps (caps, &format, &width, &height)) {
     GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Failed to parse caps"), (NULL));
@@ -272,9 +336,24 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   hal_format = gst_droid_egl_sink_get_hal_format (format);
 
   if (hal_format == -1) {
-    GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Unsupported color format 0x%x",
-            format), (NULL));
-    return FALSE;
+    if (!is_native) {
+      GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("Unsupported color format 0x%x",
+              format), (NULL));
+      return FALSE;
+    } else {
+      const GstStructure *s = gst_caps_get_structure (caps, 0);
+      if (!gst_structure_has_field (s, "format")) {
+        GST_ELEMENT_ERROR (sink, STREAM, FORMAT, ("No color format provided"),
+            (NULL));
+        return FALSE;
+      }
+
+      if (!gst_structure_get_int (s, "format", &hal_format) || hal_format < 0) {
+        GST_ELEMENT_ERROR (sink, STREAM, FORMAT,
+            ("Invalid color format provided"), (NULL));
+        return FALSE;
+      }
+    }
   }
 
   vsink->width = width;
@@ -321,6 +400,9 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   GstDroidEglBuffer *buffer;
 
   GST_DEBUG_OBJECT (sink, "buffer alloc");
+
+  // TODO:
+  g_assert (sink->hal_format != -1);
 
   if (!sink->gralloc) {
     GST_ELEMENT_ERROR (sink, LIBRARY, FAILED, ("no gralloc"), (NULL));
