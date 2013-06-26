@@ -56,6 +56,7 @@ typedef struct {
   gboolean locked;
   gboolean drop;
   gboolean foreign;
+  GstBuffer *extra_buffer;
 } GstDroidEglBuffer;
 
 struct _GstDroidEglSink {

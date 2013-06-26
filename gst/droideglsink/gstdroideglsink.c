@@ -503,8 +503,12 @@ gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
     buffer->gralloc->gralloc->unlock (buffer->gralloc->gralloc, buffer->handle);
     buff->locked = FALSE;
   }
-
+  // TODO: Do we destroy handle?
   if (buff->drop) {
+    if (buff->extra_buffer) {
+      gst_buffer_unref (buff->extra_buffer);
+    }
+
     g_mutex_lock (&sink->buffer_lock);
     g_ptr_array_remove (sink->buffers, buff);
     g_mutex_unlock (&sink->buffer_lock);
@@ -766,6 +770,7 @@ gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink * sink)
   buffer->acquired = FALSE;
   buffer->drop = FALSE;
   buffer->foreign = FALSE;
+  buffer->extra_buffer = NULL;
 
   return buffer;
 }
@@ -865,7 +870,17 @@ gst_droid_egl_sink_create_buffer_unlocked (GstDroidEglSink * sink,
   buffer = gst_droid_egl_sink_alloc_buffer_empty (sink);
 
   if (GST_IS_NATIVE_BUFFER (buff)) {
-    // TODO:
+    GstNativeBuffer *buf = GST_NATIVE_BUFFER (buff);
+    GstNativeBuffer *native =
+        gst_native_buffer_new (buf->handle, buf->gralloc, buf->stride,
+        buf->usage);
+    gst_droid_egl_sink_set_native_buffer (buffer, native);
+    native->finalize_callback_data = gst_object_ref (sink);
+    native->finalize_callback = gst_droid_egl_sink_recycle_buffer;
+    buffer->free = FALSE;
+    buffer->foreign = FALSE;
+    buffer->extra_buffer = gst_buffer_ref (buff);
+    buffer->drop = TRUE;
   } else {
     int stride;
     buffer_handle_t handle;
