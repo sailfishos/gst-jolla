@@ -846,13 +846,15 @@ gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
 
   g_mutex_lock (&sink->buffer_lock);
   old_buffer = sink->last_buffer;
-  old_buffer = NULL;
+  sink->last_buffer = NULL;
 
   g_mutex_unlock (&sink->buffer_lock);
 
   if (old_buffer) {
     gst_buffer_unref (GST_BUFFER (old_buffer->buff));
   }
+
+  GST_DEBUG_OBJECT (sink, "current buffer %p", sink->acquired_buffer);
 
   /* We will simply gamble and not touch the acauired_buffer and hope
      application will just release it ASAP. */
