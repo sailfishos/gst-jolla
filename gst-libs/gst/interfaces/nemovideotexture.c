@@ -21,7 +21,7 @@
 #include "config.h"
 #endif
 
-#include "neemovideotexture.h"
+#include "nemovideotexture.h"
 
 enum
 {
@@ -96,7 +96,7 @@ nemo_gst_video_texture_iface_class_init (NemoGstVideoTextureClass * klass)
 }
 
 gboolean
-neemo_gst_video_texture_acquire_frame (NemoGstVideoTexture * iface)
+nemo_gst_video_texture_acquire_frame (NemoGstVideoTexture * iface)
 {
   NemoGstVideoTextureClass *klass = NEMO_GST_VIDEO_TEXTURE_GET_CLASS (iface);
 
@@ -108,7 +108,7 @@ neemo_gst_video_texture_acquire_frame (NemoGstVideoTexture * iface)
 }
 
 gboolean
-neemo_gst_video_texture_bind_frame (NemoGstVideoTexture * iface,
+nemo_gst_video_texture_bind_frame (NemoGstVideoTexture * iface,
     EGLImageKHR * image)
 {
   NemoGstVideoTextureClass *klass = NEMO_GST_VIDEO_TEXTURE_GET_CLASS (iface);
@@ -121,7 +121,7 @@ neemo_gst_video_texture_bind_frame (NemoGstVideoTexture * iface,
 }
 
 void
-neemo_gst_video_texture_unbind_frame (NemoGstVideoTexture * iface)
+nemo_gst_video_texture_unbind_frame (NemoGstVideoTexture * iface)
 {
   NemoGstVideoTextureClass *klass = NEMO_GST_VIDEO_TEXTURE_GET_CLASS (iface);
 
@@ -131,7 +131,7 @@ neemo_gst_video_texture_unbind_frame (NemoGstVideoTexture * iface)
 }
 
 void
-neemo_gst_video_texture_release_frame (NemoGstVideoTexture * iface,
+nemo_gst_video_texture_release_frame (NemoGstVideoTexture * iface,
     EGLSyncKHR sync)
 {
   NemoGstVideoTextureClass *klass = NEMO_GST_VIDEO_TEXTURE_GET_CLASS (iface);

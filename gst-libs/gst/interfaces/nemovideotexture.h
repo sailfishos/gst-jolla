@@ -17,8 +17,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __NEEMO_GST_VIDEO_TEXTURE_H__
-#define __NEEMO_GST_VIDEO_TEXTURE_H__
+#ifndef __NEMO_GST_VIDEO_TEXTURE_H__
+#define __NEMO_GST_VIDEO_TEXTURE_H__
 
 #include <gst/gst.h>
 
@@ -62,14 +62,14 @@ GType   nemo_gst_video_texture_get_type          (void);
 
 /* virtual class function wrappers */
 
-gboolean neemo_gst_video_texture_acquire_frame (NemoGstVideoTexture *iface);
-gboolean neemo_gst_video_texture_bind_frame (NemoGstVideoTexture *iface, EGLImageKHR *image);
-void     neemo_gst_video_texture_unbind_frame (NemoGstVideoTexture *iface);
-void     neemo_gst_video_texture_release_frame (NemoGstVideoTexture *iface, EGLSyncKHR sync);
+gboolean nemo_gst_video_texture_acquire_frame (NemoGstVideoTexture *iface);
+gboolean nemo_gst_video_texture_bind_frame (NemoGstVideoTexture *iface, EGLImageKHR *image);
+void     nemo_gst_video_texture_unbind_frame (NemoGstVideoTexture *iface);
+void     nemo_gst_video_texture_release_frame (NemoGstVideoTexture *iface, EGLSyncKHR sync);
 
 /* trigger signals */
 void     nemo_gst_video_texture_frame_ready (NemoGstVideoTexture *iface, gint frame);
 
 G_END_DECLS
 
-#endif /* __NEEMO_GST_VIDEO_TEXTURE_H__ */
+#endif /* __NEMO_GST_VIDEO_TEXTURE_H__ */
