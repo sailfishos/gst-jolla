@@ -126,7 +126,13 @@ AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 AC_CHECK_LIB(hardware, hw_get_module, [], AC_MSG_ERROR([libhardware not found]))
 
+GST_MAJORMINOR=0.10
+AC_SUBST(GST_MAJORMINOR)
+
 AC_CONFIG_FILES([Makefile
+		gst-libs/Makefile
+		gst-libs/gst/Makefile
+		gst-libs/gst/interfaces/Makefile
 		gst/Makefile
 		gst/codecbin/Makefile
 		gst/gralloc/Makefile
