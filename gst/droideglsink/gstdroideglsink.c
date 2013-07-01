@@ -23,7 +23,7 @@
 
 #include "gstdroideglsink.h"
 #include <gst/video/video.h>
-#include <gst/interfaces/meegovideotexture.h>
+#include "gst/interfaces/nemovideotexture.h"
 #include <GLES2/gl2ext.h>
 #include <EGL/eglext.h>
 
@@ -69,16 +69,16 @@ static void
 gst_droid_egl_sink_implements_interface_init (GstImplementsInterfaceClass *
     klass);
 static void
-gst_droid_egl_sink_videotexture_interface_init (MeegoGstVideoTextureClass *
+gst_droid_egl_sink_videotexture_interface_init (NemoGstVideoTextureClass *
     iface);
 static gboolean gst_droid_egl_sink_interfaces_supported (GstDroidEglSink * sink,
     GType type);
-static gboolean gst_droid_egl_sink_acquire_frame (MeegoGstVideoTexture * bsink,
-    gint frame);
-static gboolean gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink,
-    gint target, gint dontcare);
-static void gst_droid_egl_sink_release_frame (MeegoGstVideoTexture * bsink,
-    int dontcare, gpointer sync);
+static gboolean gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink);
+static gboolean gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink,
+    EGLImageKHR * image);
+static void gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink);
+static void gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink,
+    EGLSyncKHR sync);
 
 static GstDroidEglBuffer
     * gst_droid_egl_sink_find_buffer_unlocked (GstDroidEglSink * sink,
@@ -209,7 +209,7 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   }
 
   /* We will always use 0. This should be ignored by the application. */
-  meego_gst_video_texture_frame_ready (MEEGO_GST_VIDEO_TEXTURE (sink), 0);
+  nemo_gst_video_texture_frame_ready (NEMO_GST_VIDEO_TEXTURE (sink), 0);
 
   return GST_FLOW_OK;
 }
@@ -568,7 +568,7 @@ gst_droid_egl_sink_do_init (GType type)
   g_type_add_interface_static (type, GST_TYPE_IMPLEMENTS_INTERFACE,
       &implements_iface_info);
 
-  g_type_add_interface_static (type, MEEGO_GST_TYPE_VIDEO_TEXTURE,
+  g_type_add_interface_static (type, NEMO_GST_TYPE_VIDEO_TEXTURE,
       &vt_iface_info);
 }
 
@@ -582,22 +582,23 @@ gst_droid_egl_sink_implements_interface_init (GstImplementsInterfaceClass *
 }
 
 static void
-gst_droid_egl_sink_videotexture_interface_init (MeegoGstVideoTextureClass *
+gst_droid_egl_sink_videotexture_interface_init (NemoGstVideoTextureClass *
     iface)
 {
   iface->acquire_frame = gst_droid_egl_sink_acquire_frame;
   iface->bind_frame = gst_droid_egl_sink_bind_frame;
+  iface->unbind_frame = gst_droid_egl_sink_unbind_frame;
   iface->release_frame = gst_droid_egl_sink_release_frame;
 }
 
 static gboolean
 gst_droid_egl_sink_interfaces_supported (GstDroidEglSink * sink, GType type)
 {
-  return (type == MEEGO_GST_TYPE_VIDEO_TEXTURE);
+  return (type == NEMO_GST_TYPE_VIDEO_TEXTURE);
 }
 
 static gboolean
-gst_droid_egl_sink_acquire_frame (MeegoGstVideoTexture * bsink, gint frame)
+gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
 {
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   gboolean ret;
@@ -620,9 +621,10 @@ gst_droid_egl_sink_acquire_frame (MeegoGstVideoTexture * bsink, gint frame)
 }
 
 static gboolean
-gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink, gint target,
-    gint dontcare)
+gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
 {
+  // TODO:
+#if 0
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstDroidEglBuffer *buffer;
 
@@ -674,12 +676,19 @@ gst_droid_egl_sink_bind_frame (MeegoGstVideoTexture * bsink, gint target,
     glBindTexture (target, buffer->texture);
   }
 
+#endif
+
   return TRUE;
 }
 
 static void
-gst_droid_egl_sink_release_frame (MeegoGstVideoTexture * bsink, int dontcare,
-    gpointer sync)
+gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink)
+{
+  // TODO:
+}
+
+static void
+gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
 {
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstDroidEglBuffer *buffer;
@@ -693,6 +702,8 @@ gst_droid_egl_sink_release_frame (MeegoGstVideoTexture * bsink, int dontcare,
 
   buffer->acquired = FALSE;
   gst_buffer_unref (GST_BUFFER (buffer->buff));
+
+  // TODO: sync
 }
 
 static GstDroidEglBuffer *
