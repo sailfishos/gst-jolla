@@ -623,17 +623,12 @@ gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
 static gboolean
 gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
 {
-  // TODO:
-#if 0
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstDroidEglBuffer *buffer;
+  EGLint eglImgAttrs[] =
+      { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 
-  GST_DEBUG_OBJECT (sink, "bind frame: 0x%x %d", target, dontcare);
-
-  if (dontcare == -1) {
-    glBindTexture (target, 0);
-    return TRUE;
-  }
+  GST_DEBUG_OBJECT (sink, "bind frame");
 
   buffer = sink->acquired_buffer;
   if (buffer->locked) {
@@ -642,41 +637,25 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
     buffer->locked = FALSE;
   }
 
-  if (!buffer->texture) {
-    EGLint eglImgAttrs[] =
-        { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
+  if (!sink->eglCreateImageKHR) {
+    sink->eglCreateImageKHR =
+        (PFNEGLCREATEIMAGEKHRPROC) eglGetProcAddress ("eglCreateImageKHR");
+  }
 
-    glGenTextures (1, &buffer->texture);
-    glBindTexture (target, buffer->texture);
-    glTexParameteri (target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri (target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  if (!sink->eglDestroyImageKHR) {
+    sink->eglDestroyImageKHR =
+        (PFNEGLDESTROYIMAGEKHRPROC) eglGetProcAddress ("eglDestroyImageKHR");
+  }
 
-    if (!sink->eglCreateImageKHR) {
-      sink->eglCreateImageKHR =
-          (PFNEGLCREATEIMAGEKHRPROC) eglGetProcAddress ("eglCreateImageKHR");
-    }
-
-    if (!sink->eglDestroyImageKHR) {
-      sink->eglDestroyImageKHR =
-          (PFNEGLDESTROYIMAGEKHRPROC) eglGetProcAddress ("eglDestroyImageKHR");
-    }
-
+  if (buffer->image == EGL_NO_IMAGE_KHR) {
+    GST_DEBUG_OBJECT (sink, "creating EGLImage KHR for buffer %p", buffer);
     buffer->image =
         sink->eglCreateImageKHR (eglGetDisplay (EGL_DEFAULT_DISPLAY),
         EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
         (EGLClientBuffer) buffer->native, eglImgAttrs);
-
-    if (!sink->glEGLImageTargetTexture2DOES) {
-      sink->glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)
-          eglGetProcAddress ("glEGLImageTargetTexture2DOES");
-    }
-
-    sink->glEGLImageTargetTexture2DOES (target, buffer->image);
-  } else {
-    glBindTexture (target, buffer->texture);
   }
 
-#endif
+  *image = buffer->image;
 
   return TRUE;
 }
@@ -684,7 +663,11 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
 static void
 gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink)
 {
-  // TODO:
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+
+  GST_DEBUG_OBJECT (sink, "unbind frame");
+
+  /* Nothing */
 }
 
 static void
@@ -774,7 +757,6 @@ gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink * sink)
 
   buffer->buff = NULL;
 
-  buffer->texture = 0;
   buffer->image = EGL_NO_IMAGE_KHR;
   buffer->free = FALSE;
   buffer->locked = TRUE;
@@ -822,11 +804,7 @@ static void
 gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
     sink, GstDroidEglBuffer * buffer)
 {
-  GST_DEBUG_OBJECT (sink, "destroy buffer");
-
-  if (buffer->texture) {
-    // TODO:
-  }
+  GST_DEBUG_OBJECT (sink, "destroy buffer %p (%p)", buffer, buffer->native);
 
   if (buffer->image) {
     sink->eglDestroyImageKHR (eglGetDisplay (EGL_DEFAULT_DISPLAY),

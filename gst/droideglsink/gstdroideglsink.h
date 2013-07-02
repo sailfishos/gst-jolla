@@ -49,7 +49,6 @@ typedef struct _GstDroidEglSinkClass GstDroidEglSinkClass;
 typedef struct {
   GstNativeBuffer *buff;
   struct ANativeWindowBuffer *native;
-  GLuint texture;
   EGLImageKHR image;
   gboolean acquired;
   gboolean free;
@@ -79,7 +78,6 @@ struct _GstDroidEglSink {
 
   PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
   PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;
-  PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 };
 
 struct _GstDroidEglSinkClass {
