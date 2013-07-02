@@ -265,7 +265,7 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
     gst_buffer_unref (GST_BUFFER (old_buffer->buff));
   }
 
-  /* We will always use 0. This should be ignored by the application. */
+  /* We will always use 0. */
   nemo_gst_video_texture_frame_ready (NEMO_GST_VIDEO_TEXTURE (sink), 0);
 
   return GST_FLOW_OK;
@@ -934,6 +934,8 @@ gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
 
   /* We will simply gamble and not touch the acauired_buffer and hope
      application will just release it ASAP. */
+  nemo_gst_video_texture_frame_ready (NEMO_GST_VIDEO_TEXTURE (sink), -1);
+
   return TRUE;
 }
 
