@@ -48,7 +48,7 @@ typedef struct _GstDroidEglSinkClass GstDroidEglSinkClass;
 
 typedef struct {
   GstNativeBuffer *buff;
-  struct ANativeWindowBuffer *native;
+  struct ANativeWindowBuffer native;
   EGLImageKHR image;
   gboolean acquired;
   gboolean free;

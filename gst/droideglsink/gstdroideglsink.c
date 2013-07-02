@@ -34,6 +34,9 @@
 #define BUFFER_LOCK_USAGE GRALLOC_USAGE_SW_READ_RARELY | GRALLOC_USAGE_SW_WRITE_OFTEN
 #define BUFFER_ALLOC_USAGE GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE
 
+#define container_of(ptr, type, member) ({ \
+      const typeof( ((type *)0)->member ) *__mptr = (ptr); (type *)( (char *)__mptr - offsetof(type,member) );})
+
 GST_DEBUG_CATEGORY_STATIC (droideglsink_debug);
 #define GST_CAT_DEFAULT droideglsink_debug
 
@@ -714,7 +717,7 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
     buffer->image =
         sink->eglCreateImageKHR (sink->dpy,
         EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
-        (EGLClientBuffer) buffer->native, eglImgAttrs);
+        (EGLClientBuffer) & buffer->native, eglImgAttrs);
   }
 
   *image = buffer->image;
@@ -726,10 +729,21 @@ static void
 gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink)
 {
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglBuffer *buffer;
+  EGLBoolean res = EGL_TRUE;
 
   GST_DEBUG_OBJECT (sink, "unbind frame");
 
-  /* Nothing */
+  buffer = sink->acquired_buffer;
+
+  if (buffer->image != EGL_NO_IMAGE_KHR) {
+    res = sink->eglDestroyImageKHR (sink->dpy, buffer->image);
+    buffer->image = EGL_NO_IMAGE_KHR;
+  }
+
+  if (res != EGL_TRUE) {
+    GST_WARNING_OBJECT (sink, "Failed to destroy image for buffer %p", buffer);
+  }
 }
 
 static void
@@ -770,13 +784,21 @@ gst_droid_egl_sink_find_free_buffer_unlocked (GstDroidEglSink * sink)
 static void
 gst_droid_egl_sink_native_buffer_ref (struct android_native_base_t *base)
 {
+  struct ANativeWindowBuffer *win =
+      container_of (base, struct ANativeWindowBuffer, common);
+  GstDroidEglBuffer *buffer = container_of (win, GstDroidEglBuffer, native);
 
+  gst_buffer_ref (GST_BUFFER (buffer->buff));
 }
 
 static void
 gst_droid_egl_sink_native_buffer_unref (struct android_native_base_t *base)
 {
+  struct ANativeWindowBuffer *win =
+      container_of (base, struct ANativeWindowBuffer, common);
+  GstDroidEglBuffer *buffer = container_of (win, GstDroidEglBuffer, native);
 
+  gst_buffer_unref (GST_BUFFER (buffer->buff));
 }
 
 static int
@@ -803,19 +825,18 @@ gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink * sink)
   GST_DEBUG_OBJECT (sink, "alloc buffer empty");
 
   buffer = g_malloc (sizeof (GstDroidEglBuffer));
-  buffer->native = g_malloc (sizeof (struct ANativeWindowBuffer));
-  buffer->native->common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
-  buffer->native->common.version = sizeof (struct ANativeWindowBuffer);
-  buffer->native->width = vsink->width;
-  buffer->native->height = vsink->height;
-  buffer->native->format = sink->hal_format;
-  buffer->native->usage = BUFFER_ALLOC_USAGE;
+  buffer->native.common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
+  buffer->native.common.version = sizeof (struct ANativeWindowBuffer);
+  buffer->native.width = vsink->width;
+  buffer->native.height = vsink->height;
+  buffer->native.format = sink->hal_format;
+  buffer->native.usage = BUFFER_ALLOC_USAGE;
 
-  buffer->native->common.incRef = gst_droid_egl_sink_native_buffer_ref;
-  buffer->native->common.decRef = gst_droid_egl_sink_native_buffer_unref;
+  buffer->native.common.incRef = gst_droid_egl_sink_native_buffer_ref;
+  buffer->native.common.decRef = gst_droid_egl_sink_native_buffer_unref;
 
-  memset (buffer->native->common.reserved, 0,
-      sizeof (buffer->native->common.reserved));
+  memset (buffer->native.common.reserved, 0,
+      sizeof (buffer->native.common.reserved));
 
   buffer->buff = NULL;
 
@@ -837,9 +858,9 @@ gst_droid_egl_sink_set_native_buffer (GstDroidEglBuffer * buffer,
   g_assert (buffer->buff == NULL);
 
   buffer->buff = native;
-  buffer->native->stride = native->stride;
-  buffer->native->usage = native->usage;
-  buffer->native->handle = native->handle;
+  buffer->native.stride = native->stride;
+  buffer->native.usage = native->usage;
+  buffer->native.handle = native->handle;
 }
 
 static GstDroidEglBuffer *
@@ -866,14 +887,19 @@ static void
 gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
     sink, GstDroidEglBuffer * buffer)
 {
+  EGLBoolean res = EGL_TRUE;
+
   GST_DEBUG_OBJECT (sink, "destroy buffer %p (%p)", buffer, buffer->native);
 
-  if (buffer->image) {
-    sink->eglDestroyImageKHR (sink->dpy, buffer->image);
+  if (buffer->image != EGL_NO_IMAGE_KHR) {
+    res = sink->eglDestroyImageKHR (sink->dpy, buffer->image);
     buffer->image = EGL_NO_IMAGE_KHR;
   }
 
-  g_free (buffer->native);
+  if (res != EGL_TRUE) {
+    GST_WARNING_OBJECT (sink, "Failed to destroy image for buffer %p", buffer);
+  }
+
   g_free (buffer);
 }
 
