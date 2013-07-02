@@ -37,6 +37,12 @@
 GST_DEBUG_CATEGORY_STATIC (droideglsink_debug);
 #define GST_CAT_DEFAULT droideglsink_debug
 
+enum
+{
+  PROP_0,
+  PROP_EGL_DISPLAY,
+};
+
 static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
@@ -46,6 +52,10 @@ static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
         GST_VIDEO_CAPS_YUV ("{ YV12, NV21, NV12 }")));
 
 static void gst_droid_egl_sink_finalize (GObject * object);
+static void gst_droid_egl_sink_set_property (GObject * object,
+    guint prop_id, const GValue * value, GParamSpec * pspec);
+static void gst_droid_egl_sink_get_property (GObject * object,
+    guint prop_id, GValue * value, GParamSpec * pspec);
 static GstFlowReturn gst_droid_egl_sink_show_frame (GstVideoSink * bsink,
     GstBuffer * buf);
 static gboolean gst_droid_egl_sink_start (GstBaseSink * bsink);
@@ -130,6 +140,9 @@ gst_droid_egl_sink_class_init (GstDroidEglSinkClass * klass)
   GstBaseSinkClass *basesink_class = (GstBaseSinkClass *) klass;
 
   gobject_class->finalize = gst_droid_egl_sink_finalize;
+  gobject_class->set_property = gst_droid_egl_sink_set_property;
+  gobject_class->get_property = gst_droid_egl_sink_get_property;
+
   videosink_class->show_frame =
       GST_DEBUG_FUNCPTR (gst_droid_egl_sink_show_frame);
   basesink_class->start = GST_DEBUG_FUNCPTR (gst_droid_egl_sink_start);
@@ -139,6 +152,12 @@ gst_droid_egl_sink_class_init (GstDroidEglSinkClass * klass)
   basesink_class->buffer_alloc =
       GST_DEBUG_FUNCPTR (gst_droid_egl_sink_buffer_alloc);
   basesink_class->event = GST_DEBUG_FUNCPTR (gst_droid_egl_sink_event);
+
+  g_object_class_install_property (gobject_class, PROP_EGL_DISPLAY,
+      g_param_spec_pointer ("egl-display",
+          "EGL display ",
+          "The application provided EGL display to be used for creating EGLImageKHR objects.",
+          G_PARAM_READWRITE));
 }
 
 static void
@@ -151,6 +170,7 @@ gst_droid_egl_sink_init (GstDroidEglSink * sink, GstDroidEglSinkClass * gclass)
   sink->gralloc = NULL;
   sink->format = GST_VIDEO_FORMAT_UNKNOWN;
   sink->hal_format = 0;
+  sink->dpy = EGL_NO_DISPLAY;
 
   g_mutex_init (&sink->buffer_lock);
 
@@ -168,6 +188,40 @@ gst_droid_egl_sink_finalize (GObject * object)
   g_ptr_array_free (sink->buffers, TRUE);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+gst_droid_egl_sink_set_property (GObject * object,
+    guint prop_id, const GValue * value, GParamSpec * pspec)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (object);
+
+  switch (prop_id) {
+    case PROP_EGL_DISPLAY:
+      sink->dpy = g_value_get_pointer (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+static void
+gst_droid_egl_sink_get_property (GObject * object,
+    guint prop_id, GValue * value, GParamSpec * pspec)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (object);
+
+  switch (prop_id) {
+    case PROP_EGL_DISPLAY:
+      g_value_set_pointer (value, sink->dpy);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static GstFlowReturn
@@ -605,6 +659,10 @@ gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
 
   GST_DEBUG_OBJECT (sink, "acquire frame");
 
+  if (sink->dpy == EGL_NO_DISPLAY) {
+    return FALSE;
+  }
+
   g_mutex_lock (&sink->buffer_lock);
 
   ret = (sink->last_buffer != NULL);
@@ -630,6 +688,10 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
 
   GST_DEBUG_OBJECT (sink, "bind frame");
 
+  if (sink->dpy == EGL_NO_DISPLAY) {
+    return FALSE;
+  }
+
   buffer = sink->acquired_buffer;
   if (buffer->locked) {
     buffer->buff->gralloc->gralloc->unlock (buffer->buff->gralloc->gralloc,
@@ -650,7 +712,7 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
   if (buffer->image == EGL_NO_IMAGE_KHR) {
     GST_DEBUG_OBJECT (sink, "creating EGLImage KHR for buffer %p", buffer);
     buffer->image =
-        sink->eglCreateImageKHR (eglGetDisplay (EGL_DEFAULT_DISPLAY),
+        sink->eglCreateImageKHR (sink->dpy,
         EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
         (EGLClientBuffer) buffer->native, eglImgAttrs);
   }
@@ -807,8 +869,7 @@ gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
   GST_DEBUG_OBJECT (sink, "destroy buffer %p (%p)", buffer, buffer->native);
 
   if (buffer->image) {
-    sink->eglDestroyImageKHR (eglGetDisplay (EGL_DEFAULT_DISPLAY),
-        buffer->image);
+    sink->eglDestroyImageKHR (sink->dpy, buffer->image);
     buffer->image = EGL_NO_IMAGE_KHR;
   }
 

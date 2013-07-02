@@ -71,6 +71,8 @@ struct _GstDroidEglSink {
 
   GPtrArray *buffers;
 
+  EGLDisplay dpy;
+
   // TODO: release on flush
   GstDroidEglBuffer *last_buffer;
   GstDroidEglBuffer *acquired_buffer;
