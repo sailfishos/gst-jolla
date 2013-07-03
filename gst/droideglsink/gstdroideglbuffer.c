@@ -27,6 +27,7 @@ struct _GstDroidEglBufferPrivate
   struct ANativeWindowBuffer native;
   EGLImageKHR image;
   EGLSyncKHR sync;
+  EGLDisplay dpy;
   GstDroidEglBuffer *public_object;
 };
 
@@ -54,6 +55,9 @@ gst_droid_egl_buffer_class_init (GstDroidEglBufferClass * buffer_class)
   mo_class->finalize =
       (GstMiniObjectFinalizeFunction) gst_droid_egl_buffer_finalize;
 
+  buffer_class->eglDestroySyncKHR = NULL;
+  buffer_class->eglClientWaitSyncKHR = NULL;
+
   GST_DEBUG_CATEGORY_INIT (droideglbuffer_debug, "droideglbuffer", 0,
       "GstDroidEglBuffer debug");
 }
@@ -69,6 +73,7 @@ gst_droid_egl_buffer_init (GstDroidEglBuffer * buf)
   buf->priv->buffer = NULL;
   buf->priv->image = EGL_NO_IMAGE_KHR;
   buf->priv->sync = EGL_NO_SYNC_KHR;
+  buf->priv->dpy = EGL_NO_DISPLAY;
 
   memset (&buf->priv->native, 0x0, sizeof (struct ANativeWindowBuffer));
   buf->priv->native.common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
@@ -86,8 +91,38 @@ gst_droid_egl_buffer_finalize (GstDroidEglBuffer * buf)
 {
   GST_DEBUG_OBJECT (buf, "finalize");
 
-  g_free (buf->priv);
+  if (buf->priv->sync != EGL_NO_SYNC_KHR) {
+    GstDroidEglBufferClass *klass = GST_DROID_EGL_BUFFER_GET_CLASS (buf);
+
+    if (buf->priv->dpy == EGL_NO_DISPLAY) {
+      GST_WARNING_OBJECT (buf,
+          "EGLDisplay not set. EGLSyncKHR will be leaked.");
+    } else if (!klass->eglClientWaitSyncKHR) {
+      GST_WARNING_OBJECT (buf,
+          "eglClientWaitSyncKHR is null. EGLSyncKHR will be leaked.");
+    } else if (!klass->eglDestroySyncKHR) {
+      GST_WARNING_OBJECT (buf,
+          "eglDestroySyncKHR is null. EGLSyncKHR will be leaked.");
+    } else {
+      EGLint res =
+          klass->eglClientWaitSyncKHR (buf->priv->dpy, buf->priv->sync, 0,
+          EGL_FOREVER_KHR);
+      if (res != EGL_CONDITION_SATISFIED_KHR) {
+        GST_WARNING_OBJECT (buf, "eglClientWaitSyncKHR failed.");
+      }
+
+      if (klass->eglDestroySyncKHR (buf->priv->dpy,
+              buf->priv->sync) != EGL_TRUE) {
+        GST_WARNING_OBJECT (buf, "Failed to destroy sync object.");
+      }
+    }
+
+    buf->priv->sync = EGL_NO_SYNC_KHR;
+  }
   // TODO:
+
+  g_free (buf->priv);
+
   GST_MINI_OBJECT_CLASS (parent_class)->finalize (GST_MINI_OBJECT (buf));
 }
 
@@ -179,4 +214,25 @@ gst_droid_egl_buffer_set_format (GstDroidEglBuffer * buffer, int width,
   buffer->priv->native.width = width;
   buffer->priv->native.height = height;
   buffer->priv->native.format = format;
+}
+
+void
+gst_droid_egl_buffer_set_egl_display (GstDroidEglBuffer * buffer,
+    EGLDisplay dpy)
+{
+  buffer->priv->dpy = dpy;
+}
+
+void
+gst_droid_egl_buffer_class_initialize_gl (GstDroidEglBufferClass * klass)
+{
+  if (!klass->eglDestroySyncKHR) {
+    klass->eglDestroySyncKHR =
+        (PFNEGLDESTROYSYNCKHRPROC) eglGetProcAddress ("eglDestroySyncKHR");
+  }
+
+  if (!klass->eglClientWaitSyncKHR) {
+    klass->eglClientWaitSyncKHR = (PFNEGLCLIENTWAITSYNCKHRPROC)
+        eglGetProcAddress ("eglClientWaitSyncKHR");
+  }
 }

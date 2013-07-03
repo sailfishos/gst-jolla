@@ -21,6 +21,8 @@
 #define __GST_DROID_EGL_BUFFER_H__
 
 #include <gst/gst.h>
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include "gstnativebuffer.h"
 
 G_BEGIN_DECLS
@@ -38,6 +40,11 @@ typedef struct _GstDroidEglBufferPrivate GstDroidEglBufferPrivate;
 
 typedef void *EGLImageKHR;
 typedef void *EGLSyncKHR;
+typedef void *EGLDisplay;
+
+typedef EGLint(EGLAPIENTRYP PFNEGLCLIENTWAITSYNCKHRPROC)(EGLDisplay dpy, EGLSyncKHR sync,
+							 EGLint flags, EGLTimeKHR timeout);
+typedef EGLBoolean(EGLAPIENTRYP PFNEGLDESTROYSYNCKHRORIC)(EGLDisplay dpy, EGLSyncKHR sync);
 
 struct _GstDroidEglBuffer {
   GstBuffer parent;
@@ -47,6 +54,9 @@ struct _GstDroidEglBuffer {
 
 struct _GstDroidEglBufferClass {
   GstBufferClass parent_class;
+
+  PFNEGLDESTROYSYNCKHRORIC eglDestroySyncKHR;
+  PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR;
 };
 
 GstDroidEglBuffer *gst_droid_egl_buffer_new ();
@@ -54,6 +64,8 @@ GstDroidEglBuffer *gst_droid_egl_buffer_new ();
 void gst_droid_egl_buffer_set_native_buffer (GstDroidEglBuffer *buffer, GstNativeBuffer *buf);
 GstNativeBuffer *gst_droid_egl_buffer_get_native_buffer(GstDroidEglBuffer *buffer);
 void gst_droid_egl_buffer_set_format (GstDroidEglBuffer *buffer, int width, int height, int format);
+void gst_droid_egl_buffer_set_egl_display (GstDroidEglBuffer *buffer, EGLDisplay dpy);
+void gst_droid_egl_buffer_class_initialize_gl (GstDroidEglBufferClass *klass);
 
 G_END_DECLS
 
