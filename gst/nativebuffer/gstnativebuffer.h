@@ -21,6 +21,7 @@
 #define __GST_NATIVE_BUFFER_H__
 
 #include <gst/gst.h>
+#include <gst/video/video.h>
 #include "gstgralloc.h"
 
 #define GST_NATIVE_BUFFER_NAME "video/x-android-buffer"
@@ -44,7 +45,7 @@ struct _GstNativeBuffer {
   GstGralloc *gralloc;
   int stride;
   int usage;
-
+  gboolean locked;
   gboolean (* finalize_callback) (void * data, GstNativeBuffer * buffer);
   void *finalize_callback_data;
 };
@@ -56,6 +57,9 @@ struct _GstNativeBufferClass {
 GType           gst_native_buffer_get_type           (void);
 
 GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int stride, int usage);
+
+gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format);
+gboolean gst_native_buffer_unlock (GstNativeBuffer *buffer);
 
 G_END_DECLS
 

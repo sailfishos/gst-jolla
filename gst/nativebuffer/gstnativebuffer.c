@@ -22,6 +22,8 @@
 GST_DEBUG_CATEGORY_STATIC (nativebuffer_debug);
 #define GST_CAT_DEFAULT nativebuffer_debug
 
+#define BUFFER_LOCK_USAGE GRALLOC_USAGE_SW_READ_RARELY | GRALLOC_USAGE_SW_WRITE_OFTEN
+
 static void gst_native_buffer_finalize (GstNativeBuffer * buf);
 
 static GstBufferClass *parent_class;
@@ -48,6 +50,7 @@ gst_native_buffer_init (GstNativeBuffer * buf)
   buf->handle = NULL;
   buf->gralloc = NULL;
   buf->stride = 0;
+  buf->locked = FALSE;
 
   GST_DEBUG_OBJECT (buf, "init");
 }
@@ -92,4 +95,72 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride,
   GST_BUFFER_DATA (GST_BUFFER (buffer)) = (guint8 *) handle;
 
   return buffer;
+}
+
+gboolean
+gst_native_buffer_lock (GstNativeBuffer * buffer, GstVideoFormat format)
+{
+  int width;
+  int height;
+  void *data;
+  int err;
+
+  GST_DEBUG_OBJECT (buffer, "lock");
+
+  if (buffer->locked) {
+    return TRUE;
+  }
+
+  if (format == GST_VIDEO_FORMAT_UNKNOWN) {
+    GST_WARNING_OBJECT (buffer, "Unknown video format");
+    return FALSE;
+  }
+
+  if (!gst_video_format_parse_caps (GST_BUFFER (buffer)->caps, NULL, &width,
+          &height)) {
+    GST_WARNING_OBJECT (buffer, "Failed to parse caps");
+    return FALSE;
+  }
+
+  err = buffer->gralloc->gralloc->lock (buffer->gralloc->gralloc,
+      buffer->handle, BUFFER_LOCK_USAGE, 0, 0, width, height, &data);
+
+  if (err != 0) {
+    GST_WARNING_OBJECT (buffer, "Error 0x%x locking buffer", err);
+    return FALSE;
+  }
+
+  GST_BUFFER_SIZE (buffer) = gst_video_format_get_size (format, width, height);
+  GST_BUFFER_DATA (buffer) = data;
+
+  buffer->locked = TRUE;
+
+  return TRUE;
+}
+
+gboolean
+gst_native_buffer_unlock (GstNativeBuffer * buffer)
+{
+  int err;
+
+  GST_DEBUG_OBJECT (buffer, "unlock");
+
+  if (!buffer->locked) {
+    return TRUE;
+  }
+
+  err =
+      buffer->gralloc->gralloc->unlock (buffer->gralloc->gralloc,
+      buffer->handle);
+
+  if (err != 0) {
+    GST_WARNING_OBJECT (buffer, "Error 0x%x unlocking buffer", err);
+    return FALSE;
+  }
+
+  buffer->locked = FALSE;
+  GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (buffer->handle);
+  GST_BUFFER_DATA (GST_BUFFER (buffer)) = (guint8 *) buffer->handle;
+
+  return TRUE;
 }
