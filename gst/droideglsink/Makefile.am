@@ -9,19 +9,19 @@ libgstdroidegl_la_CFLAGS = $(GST_CFLAGS) \
 			   $(MGI_CFLAGS) \
 		           $(GLES2_CFLAGS) \
 			   $(EGL_CFLAGS) \
-			   -I../gralloc \
 			   -I/usr/include/android/ \
-			   -I../nativebuffer \
-			   -I$(top_builddir)/gst-libs
+			   -I$(top_builddir)/gst-libs \
+                           -I$(top_builddir)/gst-libs/gst/gralloc/ \
+                           -I$(top_builddir)/gst/nativebuffer/
 
 libgstdroidegl_la_LIBADD = $(GST_LIBS) \
                            $(GST_VIDEO_LIBS) \
-			   $(MGI_LIBS) \
+                           $(GST_VIDEO_LIBS) \
 		           $(GLES2_LIBS) \
 			   $(EGL_LIBS) \
-                           -L../gralloc -lgstgralloc \
-                           -L../nativebuffer -lgstnativebuffer \
-			   $(top_builddir)/gst-libs/gst/interfaces/libgstnemointerfaces-$(GST_MAJORMINOR).la
+			   $(top_builddir)/gst-libs/gst/interfaces/libgstnemointerfaces-$(GST_MAJORMINOR).la \
+                           $(top_builddir)/gst-libs/gst/gralloc/libgstgralloc.la \
+			   $(top_builddir)/gst/nativebuffer/libgstnativebuffer.la
 
 libgstdroidegl_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstdroidegl_la_LIBTOOLFLAGS = --tag=disable-static

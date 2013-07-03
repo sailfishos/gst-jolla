@@ -132,10 +132,10 @@ AC_SUBST(GST_MAJORMINOR)
 AC_CONFIG_FILES([Makefile
 		gst-libs/Makefile
 		gst-libs/gst/Makefile
+		gst-libs/gst/gralloc/Makefile
 		gst-libs/gst/interfaces/Makefile
 		gst/Makefile
 		gst/codecbin/Makefile
-		gst/gralloc/Makefile
 		gst/nativebuffer/Makefile
 		gst/hwcsink/Makefile
 		gst/droideglsink/Makefile

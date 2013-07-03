@@ -1,12 +1,14 @@
-# Note: plugindir is set in configure
-
 lib_LTLIBRARIES = libgstnativebuffer.la
 
 libgstnativebuffer_la_SOURCES = gstnativebuffer.c
 
-# compiler and linker flags used to compile this plugin, set in configure.ac
-libgstnativebuffer_la_CFLAGS = $(GST_CFLAGS) -I../gralloc -I/usr/include/android/
-libgstnativebuffer_la_LIBADD = $(GST_LIBS) -L../gralloc -lgstgralloc
+libgstnativebuffer_la_CFLAGS = $(GST_CFLAGS) \
+			       -I$(top_builddir)/gst-libs/gst/gralloc/ \
+			       -I/usr/include/android/
+
+libgstnativebuffer_la_LIBADD = $(GST_LIBS) \
+			       $(top_builddir)/gst-libs/gst/gralloc/libgstgralloc.la
+
 libgstnativebuffer_la_LIBTOOLFLAGS = --tag=disable-static
 
 libgstnativebuffer_ladir = $(includedir)/gstreamer-0.10/gst/
