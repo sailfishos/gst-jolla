@@ -260,8 +260,25 @@ gst_droid_egl_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
   sink->last_buffer = buffer;
 
   g_mutex_unlock (&sink->buffer_lock);
+
   // TODO: destroy foreign
   if (old_buffer) {
+    if (old_buffer->sync != EGL_NO_SYNC_KHR) {
+      if (sink->eglClientWaitSyncKHR (sink->dpy, old_buffer->sync, 0,
+              EGL_FOREVER_KHR)
+          != EGL_CONDITION_SATISFIED_KHR) {
+        GST_WARNING_OBJECT (sink, "eglClientWaitSyncKHR failed for buffer %p",
+            old_buffer);
+      }
+
+      if (sink->eglDestroySyncKHR (sink->dpy, old_buffer->sync) != EGL_TRUE) {
+        GST_WARNING_OBJECT (sink, "Failed to destroy sync object for buffer %p",
+            old_buffer);
+      }
+
+      old_buffer->sync = EGL_NO_SYNC_KHR;
+    }
+
     gst_buffer_unref (GST_BUFFER (old_buffer->buff));
   }
 
@@ -712,6 +729,16 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
         (PFNEGLDESTROYIMAGEKHRPROC) eglGetProcAddress ("eglDestroyImageKHR");
   }
 
+  if (!sink->eglDestroySyncKHR) {
+    sink->eglDestroySyncKHR =
+        (PFNEGLDESTROYSYNCKHRPROC) eglGetProcAddress ("eglDestroySyncKHR");
+  }
+
+  if (!sink->eglClientWaitSyncKHR) {
+    sink->eglClientWaitSyncKHR = (PFNEGLCLIENTWAITSYNCKHRPROC)
+        eglGetProcAddress ("eglClientWaitSyncKHR");
+  }
+
   if (buffer->image == EGL_NO_IMAGE_KHR) {
     GST_DEBUG_OBJECT (sink, "creating EGLImage KHR for buffer %p", buffer);
     buffer->image =
@@ -825,6 +852,7 @@ gst_droid_egl_sink_alloc_buffer_empty (GstDroidEglSink * sink)
   GST_DEBUG_OBJECT (sink, "alloc buffer empty");
 
   buffer = g_malloc (sizeof (GstDroidEglBuffer));
+  buffer->sync = EGL_NO_SYNC_KHR;
   buffer->native.common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
   buffer->native.common.version = sizeof (struct ANativeWindowBuffer);
   buffer->native.width = vsink->width;
@@ -898,6 +926,13 @@ gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
 
   if (res != EGL_TRUE) {
     GST_WARNING_OBJECT (sink, "Failed to destroy image for buffer %p", buffer);
+  }
+
+  if (buffer->sync) {
+    if (sink->eglDestroySyncKHR (sink->dpy, buffer->sync) != EGL_TRUE) {
+      GST_WARNING_OBJECT (sink, "Failed to destroy sync object for buffer %p",
+          buffer);
+    }
   }
 
   g_free (buffer);

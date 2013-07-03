@@ -46,6 +46,10 @@ G_BEGIN_DECLS
 typedef struct _GstDroidEglSink GstDroidEglSink;
 typedef struct _GstDroidEglSinkClass GstDroidEglSinkClass;
 
+typedef EGLint(EGLAPIENTRYP PFNEGLCLIENTWAITSYNCKHRPROC)(EGLDisplay dpy, EGLSyncKHR sync,
+							 EGLint flags, EGLTimeKHR timeout);
+typedef EGLBoolean(EGLAPIENTRYP PFNEGLDESTROYSYNCKHRORIC)(EGLDisplay dpy, EGLSyncKHR sync);
+
 typedef struct {
   GstNativeBuffer *buff;
   struct ANativeWindowBuffer native;
@@ -56,6 +60,7 @@ typedef struct {
   gboolean drop;
   gboolean foreign;
   GstBuffer *extra_buffer;
+  EGLSyncKHR sync;
 } GstDroidEglBuffer;
 
 struct _GstDroidEglSink {
@@ -80,6 +85,8 @@ struct _GstDroidEglSink {
 
   PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
   PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;
+  PFNEGLDESTROYSYNCKHRORIC eglDestroySyncKHR;
+  PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR;
 };
 
 struct _GstDroidEglSinkClass {
