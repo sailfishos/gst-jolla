@@ -69,6 +69,8 @@ gst_native_buffer_finalize (GstNativeBuffer * buf)
     }
   }
 
+  gst_native_buffer_unlock (buf);
+
   gst_gralloc_unref (buf->gralloc);
 
   GST_DEBUG_OBJECT (buf, "finalized");
