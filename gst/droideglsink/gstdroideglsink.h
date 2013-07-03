@@ -78,7 +78,6 @@ struct _GstDroidEglSink {
 
   EGLDisplay dpy;
 
-  // TODO: release on flush
   GstDroidEglBuffer *last_buffer;
   GstDroidEglBuffer *acquired_buffer;
   GMutex buffer_lock;
