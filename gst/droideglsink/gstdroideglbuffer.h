@@ -27,6 +27,7 @@ G_BEGIN_DECLS
 
 typedef struct _GstDroidEglBuffer GstDroidEglBuffer;
 typedef struct _GstDroidEglBufferClass GstDroidEglBufferClass;
+typedef struct _GstDroidEglBufferPrivate GstDroidEglBufferPrivate;
 
 #define GST_TYPE_DROID_EGL_BUFFER            (gst_droid_egl_buffer_get_type())
 #define GST_IS_DROID_EGL_BUFFER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GST_TYPE_DROID_EGL_BUFFER))
@@ -41,10 +42,7 @@ typedef void *EGLSyncKHR;
 struct _GstDroidEglBuffer {
   GstBuffer parent;
 
-  GstNativeBuffer *buffer;
-  struct ANativeWindowBuffer native;
-  EGLImageKHR image;
-  EGLSyncKHR sync;
+  GstDroidEglBufferPrivate *priv;
 };
 
 struct _GstDroidEglBufferClass {
@@ -52,6 +50,10 @@ struct _GstDroidEglBufferClass {
 };
 
 GstDroidEglBuffer *gst_droid_egl_buffer_new ();
+
+void gst_droid_egl_buffer_set_native_buffer (GstDroidEglBuffer *buffer, GstNativeBuffer *buf);
+GstNativeBuffer *gst_droid_egl_buffer_get_native_buffer(GstDroidEglBuffer *buffer);
+void gst_droid_egl_buffer_set_format (GstDroidEglBuffer *buffer, int width, int height, int format);
 
 G_END_DECLS
 
