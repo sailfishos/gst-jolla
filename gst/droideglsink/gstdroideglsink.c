@@ -624,7 +624,7 @@ gst_droid_egl_sink_find_buffer_unlocked (GstDroidEglSink * sink,
 static void
 gst_droid_egl_sink_do_init (GType type)
 {
-  GST_DEBUG_CATEGORY_INIT (droideglsink_debug, "droidegl", 0,
+  GST_DEBUG_CATEGORY_INIT (droideglsink_debug, "droideglsink", 0,
       "Android native bufer EGL sink");
 
   static const GInterfaceInfo implements_iface_info = {
