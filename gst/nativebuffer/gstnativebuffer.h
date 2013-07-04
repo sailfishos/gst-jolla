@@ -29,6 +29,7 @@
 G_BEGIN_DECLS
 
 typedef struct _GstNativeBuffer GstNativeBuffer;
+typedef struct _GstNativeBufferPrivate GstNativeBufferPrivate;
 typedef struct _GstNativeBufferClass GstNativeBufferClass;
 
 #define GST_TYPE_NATIVE_BUFFER            (gst_native_buffer_get_type())
@@ -38,16 +39,12 @@ typedef struct _GstNativeBufferClass GstNativeBufferClass;
 #define GST_NATIVE_BUFFER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_NATIVE_BUFFER, GstNativeBuffer))
 #define GST_NATIVE_BUFFER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GST_TYPE_NATIVE_BUFFER, GstNativeBufferClass))
 
+typedef gboolean (*GstNativeBufferFinalizeCallback) (void *data, GstNativeBuffer *buffer);
+
 struct _GstNativeBuffer {
   GstBuffer buffer;
 
-  buffer_handle_t handle;
-  GstGralloc *gralloc;
-  int stride;
-  int usage;
-  gboolean locked;
-  gboolean (* finalize_callback) (void * data, GstNativeBuffer * buffer);
-  void *finalize_callback_data;
+  GstNativeBufferPrivate *priv;
 };
 
 struct _GstNativeBufferClass {
@@ -58,8 +55,14 @@ GType           gst_native_buffer_get_type           (void);
 
 GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int stride, int usage);
 
-gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format);
+gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format, int width, int height, int usage);
 gboolean gst_native_buffer_unlock (GstNativeBuffer *buffer);
+
+buffer_handle_t gst_native_buffer_get_handle (GstNativeBuffer *buffer);
+int gst_native_buffer_get_usage (GstNativeBuffer *buffer);
+int gst_native_buffer_get_stride (GstNativeBuffer *buffer);
+GstGralloc *gst_native_buffer_get_gralloc (GstNativeBuffer *buffer);
+void gst_native_buffer_set_finalize_callback (GstNativeBuffer *buffer, GstNativeBufferFinalizeCallback cb, void *data);
 
 G_END_DECLS
 

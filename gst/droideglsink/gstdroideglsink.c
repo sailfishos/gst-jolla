@@ -465,11 +465,10 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   g_mutex_unlock (&sink->buffer_lock);
 
   if (buffer) {
-    int err = sink->gralloc->gralloc->lock (sink->gralloc->gralloc,
-        buffer->buff->handle, BUFFER_LOCK_USAGE, 0, 0, vsink->width,
-        vsink->height, &data);
-
-    if (err != 0) {
+    gboolean res =
+        gst_native_buffer_lock (buffer->buff, sink->format, vsink->width,
+        vsink->height, BUFFER_LOCK_USAGE);
+    if (!res) {
       g_mutex_lock (&sink->buffer_lock);
       buffer->free = TRUE;
       g_mutex_unlock (&sink->buffer_lock);
@@ -482,10 +481,6 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
       g_mutex_lock (&sink->buffer_lock);
       buffer->locked = TRUE;
       g_mutex_unlock (&sink->buffer_lock);
-
-      GST_BUFFER_DATA (buffer->buff) = data;
-      GST_BUFFER_SIZE (buffer->buff) =
-          gst_video_format_get_size (sink->format, vsink->width, vsink->height);
 
       *buf = GST_BUFFER (buffer->buff);
       return GST_FLOW_OK;
@@ -574,7 +569,7 @@ gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
   g_mutex_unlock (&sink->buffer_lock);
 
   if (buff->locked) {
-    buffer->gralloc->gralloc->unlock (buffer->gralloc->gralloc, buffer->handle);
+    gst_native_buffer_unlock (buffer);
     buff->locked = FALSE;
   }
   // TODO: Do we destroy handle?
@@ -714,8 +709,7 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
 
   buffer = sink->acquired_buffer;
   if (buffer->locked) {
-    buffer->buff->gralloc->gralloc->unlock (buffer->buff->gralloc->gralloc,
-        buffer->buff->handle);
+    gst_native_buffer_unlock (buffer->buff);
     buffer->locked = FALSE;
   }
 
@@ -886,9 +880,9 @@ gst_droid_egl_sink_set_native_buffer (GstDroidEglBuffer * buffer,
   g_assert (buffer->buff == NULL);
 
   buffer->buff = native;
-  buffer->native.stride = native->stride;
-  buffer->native.usage = native->usage;
-  buffer->native.handle = native->handle;
+  buffer->native.stride = gst_native_buffer_get_stride (native);
+  buffer->native.usage = gst_native_buffer_get_usage (native);
+  buffer->native.handle = gst_native_buffer_get_handle (native);
 }
 
 static GstDroidEglBuffer *
@@ -905,8 +899,8 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
       gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
   gst_droid_egl_sink_set_native_buffer (buffer, buff);
 
-  buff->finalize_callback_data = gst_object_ref (sink);
-  buff->finalize_callback = gst_droid_egl_sink_recycle_buffer;
+  gst_native_buffer_set_finalize_callback (buff,
+      gst_droid_egl_sink_recycle_buffer, gst_object_ref (sink));
 
   return buffer;
 }
@@ -987,11 +981,14 @@ gst_droid_egl_sink_create_buffer_unlocked (GstDroidEglSink * sink,
   if (GST_IS_NATIVE_BUFFER (buff)) {
     GstNativeBuffer *buf = GST_NATIVE_BUFFER (buff);
     GstNativeBuffer *native =
-        gst_native_buffer_new (buf->handle, buf->gralloc, buf->stride,
-        buf->usage);
+        gst_native_buffer_new (gst_native_buffer_get_handle (buf),
+        gst_native_buffer_get_gralloc (buf),
+        gst_native_buffer_get_stride (buf),
+        gst_native_buffer_get_usage (buf));
     gst_droid_egl_sink_set_native_buffer (buffer, native);
-    native->finalize_callback_data = gst_object_ref (sink);
-    native->finalize_callback = gst_droid_egl_sink_recycle_buffer;
+    gst_native_buffer_set_finalize_callback (native,
+        gst_droid_egl_sink_recycle_buffer, gst_object_ref (sink));
+
     buffer->free = FALSE;
     buffer->foreign = FALSE;
     buffer->extra_buffer = gst_buffer_ref (buff);
@@ -1027,8 +1024,8 @@ gst_droid_egl_sink_create_buffer_unlocked (GstDroidEglSink * sink,
         gst_native_buffer_new (handle, sink->gralloc, stride,
         BUFFER_ALLOC_USAGE);
     gst_droid_egl_sink_set_native_buffer (buffer, native);
-    native->finalize_callback_data = gst_object_ref (sink);
-    native->finalize_callback = gst_droid_egl_sink_recycle_buffer;
+    gst_native_buffer_set_finalize_callback (native,
+        gst_droid_egl_sink_recycle_buffer, gst_object_ref (sink));
     buffer->free = FALSE;
     buffer->foreign = FALSE;
   }

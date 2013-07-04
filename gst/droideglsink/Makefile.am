@@ -2,9 +2,7 @@ plugin_LTLIBRARIES = libgstdroidegl.la
 
 libgstdroidegl_la_SOURCES = plugin.c \
 			    gstdroideglsink.c \
-			    gstdroideglsink.h \
-			    gstdroideglbuffer.c \
-			    gstdroideglbuffer.h
+			    gstdroideglsink.h
 
 libgstdroidegl_la_CFLAGS = $(GST_CFLAGS) \
 			   $(GST_VIDEO_CFLAGS) \
@@ -28,4 +26,4 @@ libgstdroidegl_la_LIBADD = $(GST_LIBS) \
 libgstdroidegl_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstdroidegl_la_LIBTOOLFLAGS = --tag=disable-static
 
-noinst_HEADERS = gstdroideglsink.h gstdroideglbuffer.h
+noinst_HEADERS = gstdroideglsink.h

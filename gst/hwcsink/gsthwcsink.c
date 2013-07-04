@@ -166,7 +166,8 @@ gst_hwc_sink_show_frame (GstVideoSink * bsink, GstBuffer * buf)
 
   if (GST_IS_NATIVE_BUFFER (buf)) {
     GST_DEBUG_OBJECT (sink, "got native buffer");
-    return gst_hwc_sink_show_handle (sink, GST_NATIVE_BUFFER (buf)->handle);
+    return gst_hwc_sink_show_handle (sink,
+        gst_native_buffer_get_handle (GST_NATIVE_BUFFER (buf)));
   }
 
   s = gst_caps_get_structure (buf->caps, 0);
@@ -532,8 +533,8 @@ gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset, guint size,
 
   GstNativeBuffer *buffer =
       gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
-  buffer->finalize_callback_data = gst_object_ref (sink);
-  buffer->finalize_callback = gst_hwc_sink_destroy_buffer;
+  gst_native_buffer_set_finalize_callback (buffer, gst_hwc_sink_destroy_buffer,
+      gst_object_ref (sink));
 
   *buf = GST_BUFFER (buffer);
 
@@ -546,7 +547,7 @@ gst_hwc_sink_destroy_buffer (void *data, GstNativeBuffer * buffer)
   /* TODO: cache and reuse the buffer. */
   GstHwcSink *sink = (GstHwcSink *) data;
 
-  gst_hwc_sink_destroy_handle (sink, buffer->handle);
+  gst_hwc_sink_destroy_handle (sink, gst_native_buffer_get_handle (buffer));
 
   gst_object_unref (sink);
 
