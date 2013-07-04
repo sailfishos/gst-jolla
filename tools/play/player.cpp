@@ -1,7 +1,9 @@
 #include <QtGui/QOpenGLShaderProgram>
 #include <QtGui/QGuiApplication>
 #include "player.h"
-#include <gst/interfaces/meegovideotexture.h>
+#include <gst/interfaces/nemovideotexture.h>
+
+#define EGL_SYNC_FENCE_KHR                      0x30F9
 
 static const char *vertexShaderSource =
     "attribute highp vec4 inputVertex;"
@@ -46,8 +48,10 @@ Player::Player() :
   m_sink(0),
   m_pipeline(0),
   m_hasFrame(false),
+  m_texture(0),
   m_dpy(EGL_NO_DISPLAY),
-  m_context(EGL_NO_CONTEXT) {
+  m_glEGLImageTargetTexture2DOES(NULL),
+  m_eglCreateSyncKHR(NULL) {
 
 }
 
@@ -60,41 +64,62 @@ void Player::initialize() {
   m_inputVertex = m_program->attributeLocation("inputVertex");
   m_textureCoord = m_program->attributeLocation("textureCoord");
 
-  m_dpy = eglGetCurrentDisplay ();
-  m_context = eglGetCurrentContext ();
+  m_glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)
+    eglGetProcAddress ("glEGLImageTargetTexture2DOES");
 
-  g_object_set(G_OBJECT(m_sink), "egl-display", m_dpy, "egl-context", m_context,
-	       NULL);
+  m_eglCreateSyncKHR = (PFNEGLCREATESYNCKHRPROC)
+    eglGetProcAddress ("eglCreateSyncKHR");
+
+  m_dpy = eglGetCurrentDisplay ();
+  if (m_dpy == EGL_NO_DISPLAY) {
+    abort ();
+  }
+
+  g_object_set(G_OBJECT(m_sink), "egl-display", m_dpy, NULL);
 
   g_signal_connect(G_OBJECT(m_sink), "frame-ready", G_CALLBACK(on_frame_ready), this);
 }
 
 void Player::render() {
-  MeegoGstVideoTexture *sink = MEEGO_GST_VIDEO_TEXTURE (m_sink);
+  NemoGstVideoTexture *sink = NEMO_GST_VIDEO_TEXTURE (m_sink);
   glViewport(0, 0, width(), height());
 
   glClear(GL_COLOR_BUFFER_BIT);
 
-  if (!m_hasFrame) {
+  if (!m_hasFrame && m_texture) {
+    glDeleteTextures (1, &m_texture);
+    m_texture = 0;
     return;
   }
 
-  if (!meego_gst_video_texture_acquire_frame(sink, 0)) {
+  if (!nemo_gst_video_texture_acquire_frame(sink)) {
     qDebug() << "Failed to acquire frame";
     return;
   }
 
-  glEnable(GL_TEXTURE_2D);
+  EGLImageKHR img;
+  if (!nemo_gst_video_texture_bind_frame (sink, &img)) {
+    qDebug() << "Failed to bind frame";
+
+    nemo_gst_video_texture_release_frame (sink, NULL);
+    return;
+  }
+
+  if (!m_texture) {
+    glGenTextures(1, &m_texture);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, m_texture);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  }
+  else {
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, m_texture);
+  }
 
   glActiveTexture(GL_TEXTURE0);
 
   m_program->bind();
 
-  if (!meego_gst_video_texture_bind_frame(sink, GL_TEXTURE_EXTERNAL_OES, 0)) {
-    qDebug() << "Failed to bind frame";
-    m_program->release();
-    return;
-  }
+  m_glEGLImageTargetTexture2DOES (GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)img);
 
   QMatrix4x4 matrix;
 
@@ -112,15 +137,17 @@ void Player::render() {
   glDisableVertexAttribArray(m_textureCoord);
   glDisableVertexAttribArray(m_inputVertex);
 
-  if (!meego_gst_video_texture_bind_frame(sink, GL_TEXTURE_EXTERNAL_OES, -1)) {
-    qDebug() << "Failed to unbind frame";
-  }
-
   m_program->release();
 
-  glDisable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
 
-  meego_gst_video_texture_release_frame(sink, 0, NULL);
+  nemo_gst_video_texture_unbind_frame (sink);
+
+  EGLSyncKHR sync = m_eglCreateSyncKHR (m_dpy, EGL_SYNC_FENCE_KHR, NULL);
+  nemo_gst_video_texture_release_frame(sink, sync);
+
+  glDeleteTextures (1, &m_texture);
+  m_texture = 0;
 }
 
 void Player::setSink(GstElement *sink) {
@@ -143,10 +170,6 @@ bool Player::start() {
     return false;
   }
 
-  GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (m_pipeline));
-  gst_bus_add_watch (bus, bus_callback, NULL);
-  gst_object_unref (bus);
-
   if (gst_element_set_state (m_pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
     return false;
   }
@@ -160,55 +183,11 @@ void Player::on_frame_ready(GstElement *sink, gint frame, gpointer data) {
 
   Player *player = (Player *) data;
 
-  player->m_hasFrame = true;
-  QMetaObject::invokeMethod(player, "renderLater", Qt::QueuedConnection);
-}
-
-gboolean Player::bus_callback(GstBus * bus, GstMessage * msg, gpointer data) {
-  Q_UNUSED (bus);
-  Q_UNUSED (data);
-
-  switch (GST_MESSAGE_TYPE (msg)) {
-    case GST_MESSAGE_EOS:
-      g_printerr ("End of stream\n");
-      QGuiApplication::quit();
-      break;
-
-    case GST_MESSAGE_ERROR:{
-      gchar *debug;
-      GError *error;
-
-      gst_message_parse_error (msg, &error, &debug);
-      g_printerr ("Error: %s (%s)\n", error->message, debug);
-      g_error_free (error);
-
-      if (debug) {
-        g_free (debug);
-      }
-
-      QGuiApplication::quit();
-      break;
-    }
-
-    case GST_MESSAGE_WARNING:{
-      gchar *debug;
-      GError *error;
-
-      gst_message_parse_warning (msg, &error, &debug);
-
-      g_printerr ("Warning: %s (%s)\n", error->message, debug);
-      g_error_free (error);
-
-      if (debug) {
-        g_free (debug);
-      }
-
-      break;
-    }
-
-    default:
-      break;
+  if (frame < 0) {
+    player->m_hasFrame = false;
   }
-
-  return TRUE;
+  else {
+    player->m_hasFrame = true;
+    QMetaObject::invokeMethod(player, "renderLater", Qt::QueuedConnection);
+  }
 }

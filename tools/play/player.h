@@ -7,6 +7,10 @@
 
 class QOpenGLShaderProgram;
 
+typedef void *EGLSyncKHR;
+typedef EGLSyncKHR(EGLAPIENTRYP PFNEGLCREATESYNCKHRPROC)(EGLDisplay dpy, EGLenum type,
+                                                          const EGLint *attrib_list);
+
 class Player : public OpenGLWindow {
 public:
   Player();
@@ -34,8 +38,11 @@ private:
 
   bool m_hasFrame;
 
+  GLuint m_texture;
+
   EGLDisplay m_dpy;
-  EGLContext m_context;
+  PFNGLEGLIMAGETARGETTEXTURE2DOESPROC m_glEGLImageTargetTexture2DOES;
+  PFNEGLCREATESYNCKHRPROC m_eglCreateSyncKHR;
 };
 
 #endif /* PLAYER_H */
