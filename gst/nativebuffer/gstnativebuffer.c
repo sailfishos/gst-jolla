@@ -158,8 +158,7 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int width,
   buffer->priv->native.height = height;
   buffer->priv->native.format = format;
 
-  GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (handle);
-  GST_BUFFER_DATA (GST_BUFFER (buffer)) = (guint8 *) handle;
+  gst_buffer_set_data (buffer, (guint8 *) handle, sizeof (handle));
 
   return buffer;
 }
@@ -191,10 +190,8 @@ gst_native_buffer_lock (GstNativeBuffer * buffer, GstVideoFormat format,
     return FALSE;
   }
 
-  GST_BUFFER_SIZE (buffer) =
-      gst_video_format_get_size (format, buffer->priv->native.width,
-      buffer->priv->native.height);
-  GST_BUFFER_DATA (buffer) = data;
+  gst_buffer_set_data (buffer, data, gst_video_format_get_size (format,
+          buffer->priv->native.width, buffer->priv->native.height));
 
   buffer->priv->locked = TRUE;
 
@@ -222,9 +219,9 @@ gst_native_buffer_unlock (GstNativeBuffer * buffer)
   }
 
   buffer->priv->locked = FALSE;
-  GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (buffer->priv->native.handle);
-  GST_BUFFER_DATA (GST_BUFFER (buffer)) =
-      (guint8 *) buffer->priv->native.handle;
+
+  gst_buffer_set_data (buffer, (guint8 *) buffer->priv->native.handle,
+      sizeof (buffer->priv->native.handle));
 
   return TRUE;
 }
