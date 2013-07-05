@@ -53,15 +53,19 @@ struct _GstNativeBufferClass {
 
 GType           gst_native_buffer_get_type           (void);
 
-GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int stride, int usage);
+GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int width, int height, int stride, int usage, int format);
 
-gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format, int width, int height, int usage);
+gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format, int usage);
 gboolean gst_native_buffer_unlock (GstNativeBuffer *buffer);
 
 buffer_handle_t gst_native_buffer_get_handle (GstNativeBuffer *buffer);
 int gst_native_buffer_get_usage (GstNativeBuffer *buffer);
 int gst_native_buffer_get_stride (GstNativeBuffer *buffer);
+int gst_native_buffer_get_width (GstNativeBuffer *buffer);
+int gst_native_buffer_get_height (GstNativeBuffer *buffer);
+int gst_native_buffer_get_format (GstNativeBuffer *buffer);
 GstGralloc *gst_native_buffer_get_gralloc (GstNativeBuffer *buffer);
+struct ANativeWindowBuffer *gst_native_buffer_get_native_buffer (GstNativeBuffer *buffer);
 void gst_native_buffer_set_finalize_callback (GstNativeBuffer *buffer, GstNativeBufferFinalizeCallback cb, void *data);
 
 G_END_DECLS

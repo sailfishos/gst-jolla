@@ -512,6 +512,7 @@ gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset, guint size,
   int stride;
   buffer_handle_t handle;
   GstHwcSink *sink = GST_HWC_SINK (bsink);
+  GstVideoSink *vsink = GST_VIDEO_SINK (bsink);
 
   /* TODO: We need to add format and usage to the sink caps. */
 
@@ -530,9 +531,10 @@ gst_hwc_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset, guint size,
   if (!handle) {
     return GST_FLOW_ERROR;
   }
-
+  // TODO: We are passing 0 as the format
   GstNativeBuffer *buffer =
-      gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
+      gst_native_buffer_new (handle, sink->gralloc, vsink->width, vsink->height,
+      stride, BUFFER_ALLOC_USAGE, 0);
   gst_native_buffer_set_finalize_callback (buffer, gst_hwc_sink_destroy_buffer,
       gst_object_ref (sink));
 

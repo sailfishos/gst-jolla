@@ -466,8 +466,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
 
   if (buffer) {
     gboolean res =
-        gst_native_buffer_lock (buffer->buff, sink->format, vsink->width,
-        vsink->height, BUFFER_LOCK_USAGE);
+        gst_native_buffer_lock (buffer->buff, sink->format, BUFFER_LOCK_USAGE);
     if (!res) {
       g_mutex_lock (&sink->buffer_lock);
       buffer->free = TRUE;
@@ -891,12 +890,14 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, buffer_handle_t handle,
 {
   GstDroidEglBuffer *buffer;
   GstNativeBuffer *buff;
+  GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
   GST_DEBUG_OBJECT (sink, "alloc buffer");
 
   buffer = gst_droid_egl_sink_alloc_buffer_empty (sink);
   buff =
-      gst_native_buffer_new (handle, sink->gralloc, stride, BUFFER_ALLOC_USAGE);
+      gst_native_buffer_new (handle, sink->gralloc, vsink->width, vsink->height,
+      stride, BUFFER_ALLOC_USAGE, sink->hal_format);
   gst_droid_egl_sink_set_native_buffer (buffer, buff);
 
   gst_native_buffer_set_finalize_callback (buff,
@@ -983,8 +984,11 @@ gst_droid_egl_sink_create_buffer_unlocked (GstDroidEglSink * sink,
     GstNativeBuffer *native =
         gst_native_buffer_new (gst_native_buffer_get_handle (buf),
         gst_native_buffer_get_gralloc (buf),
+        gst_native_buffer_get_width (buf),
+        gst_native_buffer_get_height (buf),
         gst_native_buffer_get_stride (buf),
-        gst_native_buffer_get_usage (buf));
+        gst_native_buffer_get_usage (buf),
+        gst_native_buffer_get_format (buf));
     gst_droid_egl_sink_set_native_buffer (buffer, native);
     gst_native_buffer_set_finalize_callback (native,
         gst_droid_egl_sink_recycle_buffer, gst_object_ref (sink));
@@ -1021,8 +1025,8 @@ gst_droid_egl_sink_create_buffer_unlocked (GstDroidEglSink * sink,
     memcpy (data, GST_BUFFER_DATA (buff), GST_BUFFER_SIZE (buff));
     sink->gralloc->gralloc->unlock (sink->gralloc->gralloc, handle);
     native =
-        gst_native_buffer_new (handle, sink->gralloc, stride,
-        BUFFER_ALLOC_USAGE);
+        gst_native_buffer_new (handle, sink->gralloc, vsink->width,
+        vsink->height, stride, BUFFER_ALLOC_USAGE, sink->hal_format);
     gst_droid_egl_sink_set_native_buffer (buffer, native);
     gst_native_buffer_set_finalize_callback (native,
         gst_droid_egl_sink_recycle_buffer, gst_object_ref (sink));

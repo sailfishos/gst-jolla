@@ -22,7 +22,12 @@
 GST_DEBUG_CATEGORY_STATIC (nativebuffer_debug);
 #define GST_CAT_DEFAULT nativebuffer_debug
 
+#define container_of(ptr, type, member) ({ \
+      const typeof( ((type *)0)->member ) *__mptr = (ptr); (type *)( (char *)__mptr - offsetof(type,member) );})
+
 static void gst_native_buffer_finalize (GstNativeBuffer * buf);
+static void gst_native_buffer_inc_ref (struct android_native_base_t *base);
+static void gst_native_buffer_dec_ref (struct android_native_base_t *base);
 
 static GstBufferClass *parent_class;
 
@@ -30,11 +35,12 @@ G_DEFINE_TYPE (GstNativeBuffer, gst_native_buffer, GST_TYPE_BUFFER);
 
 struct _GstNativeBufferPrivate
 {
-  buffer_handle_t handle;
+  GstNativeBuffer *buffer;
+
   GstGralloc *gralloc;
-  int stride;
-  int usage;
   gboolean locked;
+
+  struct ANativeWindowBuffer native;
 
   GstNativeBufferFinalizeCallback finalize_callback;
   void *finalize_callback_data;
@@ -58,10 +64,19 @@ static void
 gst_native_buffer_init (GstNativeBuffer * buf)
 {
   buf->priv = g_malloc (sizeof (GstNativeBufferPrivate));
+  buf->priv->buffer = buf;
 
-  buf->priv->handle = NULL;
+  memset (&buf->priv->native, 0x0, sizeof (buf->priv->native));
+  memset (&buf->priv->native.common.reserved, 0x0,
+      sizeof (buf->priv->native.common.reserved));
+
+  buf->priv->native.common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
+  buf->priv->native.common.version = sizeof (struct ANativeWindowBuffer);
+
+  buf->priv->native.common.incRef = gst_native_buffer_inc_ref;
+  buf->priv->native.common.decRef = gst_native_buffer_dec_ref;
+
   buf->priv->gralloc = NULL;
-  buf->priv->stride = 0;
   buf->priv->locked = FALSE;
 
   buf->priv->finalize_callback = NULL;
@@ -95,9 +110,39 @@ gst_native_buffer_finalize (GstNativeBuffer * buf)
   GST_MINI_OBJECT_CLASS (parent_class)->finalize (GST_MINI_OBJECT (buf));
 }
 
+static void
+gst_native_buffer_inc_ref (struct android_native_base_t *base)
+{
+  struct ANativeWindowBuffer *win =
+      container_of (base, struct ANativeWindowBuffer, common);
+  GstNativeBufferPrivate *priv =
+      container_of (win, GstNativeBufferPrivate, native);
+
+  GstNativeBuffer *buffer = priv->buffer;
+
+  GST_LOG_OBJECT (buffer, "inc ref");
+
+  gst_buffer_ref (GST_BUFFER (buffer));
+}
+
+static void
+gst_native_buffer_dec_ref (struct android_native_base_t *base)
+{
+  struct ANativeWindowBuffer *win =
+      container_of (base, struct ANativeWindowBuffer, common);
+  GstNativeBufferPrivate *priv =
+      container_of (win, GstNativeBufferPrivate, native);
+
+  GstNativeBuffer *buffer = priv->buffer;
+
+  GST_LOG_OBJECT (buffer, "dec ref");
+
+  gst_buffer_unref (GST_BUFFER (buffer));
+}
+
 GstNativeBuffer *
-gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride,
-    int usage)
+gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int width,
+    int height, int stride, int usage, int format)
 {
   GstNativeBuffer *buffer;
 
@@ -105,10 +150,13 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride,
 
   GST_DEBUG_OBJECT (buffer, "new");
 
-  buffer->priv->handle = handle;
+  buffer->priv->native.handle = handle;
   buffer->priv->gralloc = gst_gralloc_ref (gralloc);
-  buffer->priv->stride = stride;
-  buffer->priv->usage = usage;
+  buffer->priv->native.stride = stride;
+  buffer->priv->native.usage = usage;
+  buffer->priv->native.width = width;
+  buffer->priv->native.height = height;
+  buffer->priv->native.format = format;
 
   GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (handle);
   GST_BUFFER_DATA (GST_BUFFER (buffer)) = (guint8 *) handle;
@@ -118,7 +166,7 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int stride,
 
 gboolean
 gst_native_buffer_lock (GstNativeBuffer * buffer, GstVideoFormat format,
-    int width, int height, int usage)
+    int usage)
 {
   void *data;
   int err;
@@ -135,14 +183,17 @@ gst_native_buffer_lock (GstNativeBuffer * buffer, GstVideoFormat format,
   }
 
   err = buffer->priv->gralloc->gralloc->lock (buffer->priv->gralloc->gralloc,
-      buffer->priv->handle, usage, 0, 0, width, height, &data);
+      buffer->priv->native.handle, usage, 0, 0, buffer->priv->native.width,
+      buffer->priv->native.height, &data);
 
   if (err != 0) {
     GST_WARNING_OBJECT (buffer, "Error 0x%x locking buffer", err);
     return FALSE;
   }
 
-  GST_BUFFER_SIZE (buffer) = gst_video_format_get_size (format, width, height);
+  GST_BUFFER_SIZE (buffer) =
+      gst_video_format_get_size (format, buffer->priv->native.width,
+      buffer->priv->native.height);
   GST_BUFFER_DATA (buffer) = data;
 
   buffer->priv->locked = TRUE;
@@ -163,7 +214,7 @@ gst_native_buffer_unlock (GstNativeBuffer * buffer)
 
   err =
       buffer->priv->gralloc->gralloc->unlock (buffer->priv->gralloc->gralloc,
-      buffer->priv->handle);
+      buffer->priv->native.handle);
 
   if (err != 0) {
     GST_WARNING_OBJECT (buffer, "Error 0x%x unlocking buffer", err);
@@ -171,8 +222,9 @@ gst_native_buffer_unlock (GstNativeBuffer * buffer)
   }
 
   buffer->priv->locked = FALSE;
-  GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (buffer->priv->handle);
-  GST_BUFFER_DATA (GST_BUFFER (buffer)) = (guint8 *) buffer->priv->handle;
+  GST_BUFFER_SIZE (GST_BUFFER (buffer)) = sizeof (buffer->priv->native.handle);
+  GST_BUFFER_DATA (GST_BUFFER (buffer)) =
+      (guint8 *) buffer->priv->native.handle;
 
   return TRUE;
 }
@@ -180,25 +232,49 @@ gst_native_buffer_unlock (GstNativeBuffer * buffer)
 buffer_handle_t
 gst_native_buffer_get_handle (GstNativeBuffer * buffer)
 {
-  return buffer->priv->handle;
+  return buffer->priv->native.handle;
 }
 
 int
 gst_native_buffer_get_usage (GstNativeBuffer * buffer)
 {
-  return buffer->priv->usage;
+  return buffer->priv->native.usage;
 }
 
 int
 gst_native_buffer_get_stride (GstNativeBuffer * buffer)
 {
-  return buffer->priv->stride;
+  return buffer->priv->native.stride;
+}
+
+int
+gst_native_buffer_get_width (GstNativeBuffer * buffer)
+{
+  return buffer->priv->native.width;
+}
+
+int
+gst_native_buffer_get_height (GstNativeBuffer * buffer)
+{
+  return buffer->priv->native.height;
+}
+
+int
+gst_native_buffer_get_format (GstNativeBuffer * buffer)
+{
+  return buffer->priv->native.format;
 }
 
 GstGralloc *
 gst_native_buffer_get_gralloc (GstNativeBuffer * buffer)
 {
   return buffer->priv->gralloc;
+}
+
+struct ANativeWindowBuffer *
+gst_native_buffer_get_native_buffer (GstNativeBuffer * buffer)
+{
+  return &buffer->priv->native;
 }
 
 void
