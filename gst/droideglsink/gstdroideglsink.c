@@ -260,7 +260,7 @@ gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
     new_buffer = GST_NATIVE_BUFFER (b);
 
     /* No need to lock because the buffer should already be locked. */
-    memcpy (GST_BUFFER_DATA (buf), GST_BUFFER_DATA (b), GST_BUFFER_SIZE (buf));
+    memcpy (GST_BUFFER_DATA (b), GST_BUFFER_DATA (buf), GST_BUFFER_SIZE (buf));
 
     if (!gst_native_buffer_unlock (new_buffer)) {
       GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
