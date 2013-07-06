@@ -521,6 +521,8 @@ gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
   GST_DEBUG_OBJECT (sink, "recycle buffer");
 
   if (!gst_native_buffer_unlock (buffer)) {
+    GST_WARNING_OBJECT (sink, "failed to unlock buffer %p", buffer);
+
     g_mutex_lock (&sink->buffer_lock);
     g_ptr_array_remove (sink->buffers, buffer);
     g_mutex_unlock (&sink->buffer_lock);
