@@ -50,19 +50,6 @@ typedef EGLint(EGLAPIENTRYP PFNEGLCLIENTWAITSYNCKHRPROC)(EGLDisplay dpy, EGLSync
 							 EGLint flags, EGLTimeKHR timeout);
 typedef EGLBoolean(EGLAPIENTRYP PFNEGLDESTROYSYNCKHRORIC)(EGLDisplay dpy, EGLSyncKHR sync);
 
-typedef struct {
-  GstNativeBuffer *buff;
-  struct ANativeWindowBuffer native;
-  EGLImageKHR image;
-  gboolean acquired;
-  gboolean free;
-  gboolean locked;
-  gboolean drop;
-  gboolean foreign;
-  GstBuffer *extra_buffer;
-  EGLSyncKHR sync;
-} GstDroidEglBuffer;
-
 struct _GstDroidEglSink {
   GstVideoSink parent;
 
@@ -78,9 +65,14 @@ struct _GstDroidEglSink {
 
   EGLDisplay dpy;
 
-  GstDroidEglBuffer *last_buffer;
-  GstDroidEglBuffer *acquired_buffer;
+  GstNativeBuffer *last_buffer;
+  GstNativeBuffer *acquired_buffer;
   GMutex buffer_lock;
+
+  EGLSyncKHR sync;
+  EGLImageKHR image;
+
+  GQueue *free_buffers;
 
   PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
   PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;
