@@ -487,9 +487,10 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
 
   if (!is_native) {
     if (!gst_native_buffer_lock (buffer, sink->format, BUFFER_LOCK_USAGE)) {
-      // TODO: error handling
-      //      gst_droid_egl_sink_destroy_handle (sink, handle, sink->gralloc);
-      //      gst_buffer_unref (GST_BUFFER (buffer));
+
+      g_mutex_lock (&sink->buffer_lock);
+      gst_droid_egl_sink_destroy_buffer (buffer, sink);
+      g_mutex_unlock (&sink->buffer_lock);
 
       GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
           ("Could not lock native buffer handle"), (NULL));
