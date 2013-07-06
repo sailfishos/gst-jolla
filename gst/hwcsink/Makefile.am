@@ -4,7 +4,7 @@ libgsthwcsink_la_SOURCES = plugin.c \
 			gsthwcsink.c \
 			gsthwcsink.h
 
-libgsthwcsink_la_CFLAGS = -I/usr/include/android/ \
+libgsthwcsink_la_CFLAGS = $(DROID_CFLAGS) \
                           -I$(top_builddir)/gst-libs/gst/gralloc/ \
                           -I$(top_builddir)/gst/nativebuffer/ \
                           $(GST_CFLAGS) \

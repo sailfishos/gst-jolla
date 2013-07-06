@@ -79,14 +79,14 @@ PKG_CHECK_MODULES(EGL, [
   ])
 ])
 
-PKG_CHECK_MODULES(GLES2, [
-  glesv2
+PKG_CHECK_MODULES(DROID, [
+  android-headers
 ], [
-  AC_SUBST(GLES2_CFLAGS)
-  AC_SUBST(GLES2_LIBS)
+  AC_SUBST(DROID_CFLAGS)
+  AC_SUBST(DROID_LIBS)
 ], [
   AC_MSG_ERROR([
-      GLESv2 is missing
+      android-headers package is missing
   ])
 ])
 

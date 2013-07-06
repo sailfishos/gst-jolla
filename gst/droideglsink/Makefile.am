@@ -4,7 +4,7 @@ libgstdroidegl_la_SOURCES = plugin.c \
 			    gstdroideglsink.c \
 			    gstdroideglsink.h
 
-libgstdroidegl_la_CFLAGS = -I/usr/include/android/ \
+libgstdroidegl_la_CFLAGS = $(DROID_CFLAGS) \
 			   -I$(top_builddir)/gst-libs \
                            -I$(top_builddir)/gst-libs/gst/gralloc/ \
                            -I$(top_builddir)/gst/nativebuffer/ \
