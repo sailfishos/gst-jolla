@@ -234,6 +234,14 @@ gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
 
   if (GST_IS_NATIVE_BUFFER (buf)) {
     new_buffer = GST_NATIVE_BUFFER (buf);
+
+    if (!gst_native_buffer_unlock (new_buffer)) {
+      GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
+          ("Failed to unlock native buffer"), (NULL));
+
+      return GST_FLOW_ERROR;
+    }
+
     gst_buffer_ref (buf);
   } else {
     GstBuffer *b;
@@ -255,6 +263,9 @@ gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
     memcpy (GST_BUFFER_DATA (buf), GST_BUFFER_DATA (b), GST_BUFFER_SIZE (buf));
 
     if (!gst_native_buffer_unlock (new_buffer)) {
+      GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
+          ("Failed to unlock native buffer"), (NULL));
+
       gst_buffer_unref (GST_BUFFER (new_buffer));
       return GST_FLOW_ERROR;
     }
