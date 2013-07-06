@@ -851,6 +851,7 @@ gst_droid_egl_sink_wait_and_destroy_sync (GstDroidEglSink * sink,
     return TRUE;
   }
 
+  /* TODO: this is returning 0x1 */
   res = sink->eglClientWaitSyncKHR (sink->dpy, sync, 0, EGL_FOREVER_KHR);
   GST_LOG_OBJECT (sink, "waiting for sync returned 0x%x", res);
 
