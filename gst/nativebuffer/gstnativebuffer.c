@@ -281,3 +281,17 @@ gst_native_buffer_set_finalize_callback (GstNativeBuffer * buffer,
   buffer->priv->finalize_callback = cb;
   buffer->priv->finalize_callback_data = data;
 }
+
+GstNativeBuffer *
+gst_native_buffer_find (buffer_handle_t * handle)
+{
+  struct ANativeWindowBuffer *win =
+      container_of (handle, struct ANativeWindowBuffer, handle);
+
+  GstNativeBufferPrivate *priv =
+      container_of (win, GstNativeBufferPrivate, native);
+
+  GstNativeBuffer *buffer = priv->buffer;
+
+  return buffer;
+}

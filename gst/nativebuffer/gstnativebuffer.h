@@ -55,6 +55,8 @@ GType           gst_native_buffer_get_type           (void);
 
 GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, GstGralloc * gralloc, int width, int height, int stride, int usage, int format);
 
+GstNativeBuffer *gst_native_buffer_find (buffer_handle_t *handle);
+
 gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format, int usage);
 gboolean gst_native_buffer_unlock (GstNativeBuffer *buffer);
 
