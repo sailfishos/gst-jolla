@@ -226,10 +226,10 @@ gst_native_buffer_unlock (GstNativeBuffer * buffer)
   return TRUE;
 }
 
-buffer_handle_t
+buffer_handle_t *
 gst_native_buffer_get_handle (GstNativeBuffer * buffer)
 {
-  return buffer->priv->native.handle;
+  return &buffer->priv->native.handle;
 }
 
 int

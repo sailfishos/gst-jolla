@@ -187,7 +187,7 @@ gst_droid_egl_sink_destroy_buffer (GstNativeBuffer * buffer,
   g_ptr_array_remove (sink->buffers, buffer);
 
   gst_droid_egl_sink_destroy_handle (sink,
-      gst_native_buffer_get_handle (buffer),
+      *gst_native_buffer_get_handle (buffer),
       gst_native_buffer_get_gralloc (buffer));
 
   gst_buffer_unref (GST_BUFFER (buffer));
@@ -554,7 +554,7 @@ gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
     g_mutex_unlock (&sink->buffer_lock);
 
     gst_droid_egl_sink_destroy_handle (sink,
-        gst_native_buffer_get_handle (buffer),
+        *gst_native_buffer_get_handle (buffer),
         gst_native_buffer_get_gralloc (buffer));
 
     return FALSE;

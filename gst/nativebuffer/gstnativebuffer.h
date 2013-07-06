@@ -58,7 +58,7 @@ GstNativeBuffer*   gst_native_buffer_new             (buffer_handle_t handle, Gs
 gboolean gst_native_buffer_lock (GstNativeBuffer *buffer, GstVideoFormat format, int usage);
 gboolean gst_native_buffer_unlock (GstNativeBuffer *buffer);
 
-buffer_handle_t gst_native_buffer_get_handle (GstNativeBuffer *buffer);
+buffer_handle_t *gst_native_buffer_get_handle (GstNativeBuffer *buffer);
 int gst_native_buffer_get_usage (GstNativeBuffer *buffer);
 int gst_native_buffer_get_stride (GstNativeBuffer *buffer);
 int gst_native_buffer_get_width (GstNativeBuffer *buffer);
