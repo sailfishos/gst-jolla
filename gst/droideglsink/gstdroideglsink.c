@@ -106,6 +106,9 @@ static gboolean gst_droid_egl_sink_wait_and_destroy_sync (GstDroidEglSink *
 static gboolean gst_droid_egl_sink_destroy_sync (GstDroidEglSink * sink,
     EGLSyncKHR sync);
 
+static GstNativeBuffer *gst_droid_egl_sink_copy_buffer (GstDroidEglSink * sink,
+    GstBuffer * buf);
+
 GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
     GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
 
@@ -225,7 +228,6 @@ static GstFlowReturn
 gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
 {
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (vsink);
-  GstBaseSink *bsink = GST_BASE_SINK (vsink);
   GstNativeBuffer *new_buffer;
   GstNativeBuffer *old_buffer;
   EGLSyncKHR sync = EGL_NO_SYNC_KHR;
@@ -244,29 +246,8 @@ gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
 
     gst_buffer_ref (buf);
   } else {
-    GstBuffer *b;
-
-    GST_DEBUG_OBJECT (sink, "creating native buffer for foreign buffer %p",
-        buf);
-
-    GstFlowReturn ret =
-        gst_droid_egl_sink_buffer_alloc (bsink, 0, 0, GST_BUFFER_CAPS (buf),
-        &b);
-
-    if (ret != GST_FLOW_OK) {
-      return ret;
-    }
-
-    new_buffer = GST_NATIVE_BUFFER (b);
-
-    /* No need to lock because the buffer should already be locked. */
-    memcpy (GST_BUFFER_DATA (b), GST_BUFFER_DATA (buf), GST_BUFFER_SIZE (buf));
-
-    if (!gst_native_buffer_unlock (new_buffer)) {
-      GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
-          ("Failed to unlock native buffer"), (NULL));
-
-      gst_buffer_unref (GST_BUFFER (new_buffer));
+    new_buffer = gst_droid_egl_sink_copy_buffer (sink, buf);
+    if (!new_buffer) {
       return GST_FLOW_ERROR;
     }
   }
@@ -904,4 +885,35 @@ gst_droid_egl_sink_destroy_sync (GstDroidEglSink * sink, EGLSyncKHR sync)
   }
 
   return TRUE;
+}
+
+static GstNativeBuffer *
+gst_droid_egl_sink_copy_buffer (GstDroidEglSink * sink, GstBuffer * buf)
+{
+  GstNativeBuffer *buffer;
+
+  GST_DEBUG_OBJECT (sink, "copy buffer %p", buf);
+
+  GstFlowReturn ret =
+      gst_droid_egl_sink_buffer_alloc (GST_BASE_SINK (sink), 0, 0,
+      GST_BUFFER_CAPS (buf),
+      (GstBuffer **) & buffer);
+
+  if (ret != GST_FLOW_OK) {
+    return NULL;
+  }
+
+  /* No need to lock because the buffer should already be locked. */
+  memcpy (GST_BUFFER_DATA (GST_BUFFER (buffer)), GST_BUFFER_DATA (buf),
+      GST_BUFFER_SIZE (buf));
+
+  if (!gst_native_buffer_unlock (buffer)) {
+    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
+        ("Failed to unlock native buffer"), (NULL));
+
+    gst_buffer_unref (GST_BUFFER (buffer));
+    return NULL;
+  }
+
+  return buffer;
 }
