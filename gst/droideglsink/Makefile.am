@@ -4,15 +4,15 @@ libgstdroidegl_la_SOURCES = plugin.c \
 			    gstdroideglsink.c \
 			    gstdroideglsink.h
 
-libgstdroidegl_la_CFLAGS = $(GST_CFLAGS) \
+libgstdroidegl_la_CFLAGS = -I/usr/include/android/ \
+			   -I$(top_builddir)/gst-libs \
+                           -I$(top_builddir)/gst-libs/gst/gralloc/ \
+                           -I$(top_builddir)/gst/nativebuffer/ \
+                           $(GST_CFLAGS) \
 			   $(GST_VIDEO_CFLAGS) \
 			   $(MGI_CFLAGS) \
 		           $(GLES2_CFLAGS) \
-			   $(EGL_CFLAGS) \
-			   -I/usr/include/android/ \
-			   -I$(top_builddir)/gst-libs \
-                           -I$(top_builddir)/gst-libs/gst/gralloc/ \
-                           -I$(top_builddir)/gst/nativebuffer/
+			   $(EGL_CFLAGS)
 
 libgstdroidegl_la_LIBADD = $(GST_LIBS) \
                            $(GST_VIDEO_LIBS) \

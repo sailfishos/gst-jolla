@@ -4,11 +4,11 @@ libgsthwcsink_la_SOURCES = plugin.c \
 			gsthwcsink.c \
 			gsthwcsink.h
 
-libgsthwcsink_la_CFLAGS = $(GST_CFLAGS) \
-                          $(GST_VIDEO_CFLAGS) \
-                          -I/usr/include/android/ \
+libgsthwcsink_la_CFLAGS = -I/usr/include/android/ \
                           -I$(top_builddir)/gst-libs/gst/gralloc/ \
-                          -I$(top_builddir)/gst/nativebuffer/
+                          -I$(top_builddir)/gst/nativebuffer/ \
+                          $(GST_CFLAGS) \
+                          $(GST_VIDEO_CFLAGS)
 
 libgsthwcsink_la_LIBADD = $(GST_LIBS) \
                           $(GST_VIDEO_LIBS) \

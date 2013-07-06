@@ -2,9 +2,9 @@ lib_LTLIBRARIES = libgstnativebuffer.la
 
 libgstnativebuffer_la_SOURCES = gstnativebuffer.c
 
-libgstnativebuffer_la_CFLAGS = $(GST_CFLAGS) \
-			       -I$(top_builddir)/gst-libs/gst/gralloc/ \
-			       -I/usr/include/android/
+libgstnativebuffer_la_CFLAGS = -I$(top_builddir)/gst-libs/gst/gralloc/ \
+			       -I/usr/include/android/ \
+                               $(GST_CFLAGS)
 
 libgstnativebuffer_la_LIBADD = $(GST_LIBS) \
 			       $(top_builddir)/gst-libs/gst/gralloc/libgstgralloc.la
