@@ -68,17 +68,6 @@ PKG_CHECK_MODULES(GST_VIDEO, [
   ])
 ])
 
-PKG_CHECK_MODULES(MGI, [
-  meego-gstreamer-interfaces-0.10
-], [
-  AC_SUBST(MGI_CFLAGS)
-  AC_SUBST(MGI_LIBS)
-], [
-  AC_MSG_ERROR([
-      meego-gstreamer-interfaces is missing
-  ])
-])
-
 PKG_CHECK_MODULES(EGL, [
   egl
 ], [
