@@ -65,7 +65,7 @@ int main(int argc, char **argv)
       player.setSink(sink);
     }
 
-    player.resize(768, 1280);
+    player.resize(540, 960);
     player.show();
 
     if (!player.start()) {
