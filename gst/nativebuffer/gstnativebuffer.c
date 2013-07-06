@@ -278,9 +278,6 @@ void
 gst_native_buffer_set_finalize_callback (GstNativeBuffer * buffer,
     GstNativeBufferFinalizeCallback cb, void *data)
 {
-  g_assert (buffer->priv->finalize_callback == NULL);
-  g_assert (buffer->priv->finalize_callback_data == NULL);
-
   buffer->priv->finalize_callback = cb;
   buffer->priv->finalize_callback_data = data;
 }

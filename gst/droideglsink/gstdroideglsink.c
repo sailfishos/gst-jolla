@@ -108,6 +108,8 @@ static gboolean gst_droid_egl_sink_destroy_sync (GstDroidEglSink * sink,
 
 static GstNativeBuffer *gst_droid_egl_sink_copy_buffer (GstDroidEglSink * sink,
     GstBuffer * buf);
+static void gst_droid_egl_sink_destroy_buffer (GstNativeBuffer * buffer,
+    GstDroidEglSink * sink);
 
 GST_BOILERPLATE_FULL (GstDroidEglSink, gst_droid_egl_sink, GstVideoSink,
     GST_TYPE_VIDEO_SINK, gst_droid_egl_sink_do_init);
@@ -175,17 +177,41 @@ gst_droid_egl_sink_init (GstDroidEglSink * sink, GstDroidEglSinkClass * gclass)
 }
 
 static void
+gst_droid_egl_sink_destroy_buffer (GstNativeBuffer * buffer,
+    GstDroidEglSink * sink)
+{
+  GST_DEBUG_OBJECT (sink, "destroy buffer");
+
+  gst_native_buffer_set_finalize_callback (buffer, NULL, NULL);
+
+  g_ptr_array_remove (sink->buffers, buffer);
+
+  gst_droid_egl_sink_destroy_handle (sink,
+      gst_native_buffer_get_handle (buffer),
+      gst_native_buffer_get_gralloc (buffer));
+
+  gst_buffer_unref (GST_BUFFER (buffer));
+}
+
+static void
 gst_droid_egl_sink_finalize (GObject * object)
 {
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (object);
 
-  g_mutex_clear (&sink->buffer_lock);
+  g_mutex_lock (&sink->buffer_lock);
+  g_queue_foreach (sink->free_buffers,
+      (GFunc) gst_droid_egl_sink_destroy_buffer, sink);
+  g_mutex_unlock (&sink->buffer_lock);
 
-  // TODO: free all buffers
+  g_queue_free (sink->free_buffers);
+
+  // Unlikely but another element might be still holding a reference to
+  // the buffer and we really cannot do anything.
+  g_assert (sink->buffers->len == 0);
+
   g_ptr_array_free (sink->buffers, TRUE);
 
-  // TODO: free all buffers
-  g_queue_free (sink->free_buffers);
+  g_mutex_clear (&sink->buffer_lock);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -476,7 +502,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
 
   gst_buffer_set_caps (*buf, caps);
 
-  GST_DEBUG_OBJECT (sink, "allocated buffer %p", buffer);
+  GST_DEBUG_OBJECT (sink, "handing buffer %p", buffer);
 
   return GST_FLOW_OK;
 }
@@ -486,8 +512,8 @@ gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
 {
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
-  // TODO:
-  //  GST_DEBUG_OBJECT (sink, "alloc handle");
+  // TODO: this is crashing lipstick!!!
+  // GST_DEBUG_OBJECT (sink, "alloc handle");
 
   buffer_handle_t handle =
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
@@ -530,8 +556,6 @@ gst_droid_egl_sink_recycle_buffer (void *data, GstNativeBuffer * buffer)
     gst_droid_egl_sink_destroy_handle (sink,
         gst_native_buffer_get_handle (buffer),
         gst_native_buffer_get_gralloc (buffer));
-
-    gst_object_unref (sink);
 
     return FALSE;
   }
@@ -733,35 +757,6 @@ gst_droid_egl_sink_get_hal_format (GstVideoFormat format)
   }
 }
 
-#if 0
-static void
-gst_droid_egl_sink_destroy_buffer (GstDroidEglSink *
-    sink, GstDroidEglBuffer * buffer)
-{
-  EGLBoolean res = EGL_TRUE;
-
-  GST_DEBUG_OBJECT (sink, "destroy buffer %p (%p)", buffer, buffer->native);
-
-  if (buffer->image != EGL_NO_IMAGE_KHR) {
-    res = sink->eglDestroyImageKHR (sink->dpy, buffer->image);
-    buffer->image = EGL_NO_IMAGE_KHR;
-  }
-
-  if (res != EGL_TRUE) {
-    GST_WARNING_OBJECT (sink, "Failed to destroy image for buffer %p", buffer);
-  }
-
-  if (buffer->sync) {
-    if (sink->eglDestroySyncKHR (sink->dpy, buffer->sync) != EGL_TRUE) {
-      GST_WARNING_OBJECT (sink, "Failed to destroy sync object for buffer %p",
-          buffer);
-    }
-  }
-
-  g_free (buffer);
-}
-#endif
-
 static gboolean
 gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
 {
@@ -808,7 +803,7 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, GstCaps * caps)
   buffer_handle_t handle;
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
-  // TODO:
+  // TODO: this is crashing lipstick!!!
   //  GST_DEBUG_OBJECT (sink, "alloc buffer");
 
   if (!sink->gralloc) {
@@ -836,7 +831,7 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, GstCaps * caps)
   g_mutex_unlock (&sink->buffer_lock);
 
   gst_native_buffer_set_finalize_callback (buffer,
-      gst_droid_egl_sink_recycle_buffer, gst_object_ref (sink));
+      gst_droid_egl_sink_recycle_buffer, sink);
 
   return buffer;
 }
