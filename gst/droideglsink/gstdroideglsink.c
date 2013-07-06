@@ -513,8 +513,7 @@ gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
 {
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
-  // TODO: this is crashing lipstick!!!
-  // GST_DEBUG_OBJECT (sink, "alloc handle");
+  GST_DEBUG_OBJECT (sink, "alloc handle");
 
   buffer_handle_t handle =
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
@@ -804,8 +803,7 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, GstCaps * caps)
   buffer_handle_t handle;
   GstVideoSink *vsink = GST_VIDEO_SINK (sink);
 
-  // TODO: this is crashing lipstick!!!
-  //  GST_DEBUG_OBJECT (sink, "alloc buffer");
+  GST_DEBUG_OBJECT (sink, "alloc buffer");
 
   if (!sink->gralloc) {
     GST_ELEMENT_ERROR (sink, LIBRARY, FAILED, ("no gralloc"), (NULL));
