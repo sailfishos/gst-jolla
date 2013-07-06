@@ -711,7 +711,7 @@ gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
   GstNativeBuffer *buffer;
   EGLSyncKHR our_sync;
 
-  GST_DEBUG_OBJECT (sink, "release frame width sync %p", sync);
+  GST_DEBUG_OBJECT (sink, "release frame with sync %p", sync);
 
   g_mutex_lock (&sink->buffer_lock);
   buffer = sink->acquired_buffer;
