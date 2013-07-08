@@ -68,6 +68,7 @@ int gst_native_buffer_get_height (GstNativeBuffer *buffer);
 int gst_native_buffer_get_format (GstNativeBuffer *buffer);
 GstGralloc *gst_native_buffer_get_gralloc (GstNativeBuffer *buffer);
 struct ANativeWindowBuffer *gst_native_buffer_get_native_buffer (GstNativeBuffer *buffer);
+gboolean gst_native_buffer_is_locked (GstNativeBuffer *buffer);
 void gst_native_buffer_set_finalize_callback (GstNativeBuffer *buffer, GstNativeBufferFinalizeCallback cb, void *data);
 
 G_END_DECLS

@@ -295,3 +295,9 @@ gst_native_buffer_find (buffer_handle_t * handle)
 
   return buffer;
 }
+
+gboolean
+gst_native_buffer_is_locked (GstNativeBuffer * buffer)
+{
+  return buffer->priv->locked;
+}
