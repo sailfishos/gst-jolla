@@ -261,6 +261,7 @@ gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
   GST_DEBUG_OBJECT (sink, "show frame");
 
   if (GST_IS_NATIVE_BUFFER (buf)) {
+    GST_DEBUG_OBJECT (sink, "using supplied native buffer %p", buf);
     new_buffer = GST_NATIVE_BUFFER (buf);
 
     if (!gst_native_buffer_unlock (new_buffer)) {
@@ -273,6 +274,7 @@ gst_droid_egl_sink_show_frame (GstVideoSink * vsink, GstBuffer * buf)
     gst_buffer_ref (buf);
   } else {
     new_buffer = gst_droid_egl_sink_copy_buffer (sink, buf);
+    GST_DEBUG_OBJECT (sink, "using allocated native buffer %p", new_buffer);
     if (!new_buffer) {
       return GST_FLOW_ERROR;
     }
