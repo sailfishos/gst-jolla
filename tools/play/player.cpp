@@ -156,6 +156,10 @@ void Player::setSink(GstElement *sink) {
 
 void Player::setPipeline(GstElement *pipeline) {
   m_pipeline = pipeline;
+
+  GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (m_pipeline));
+  gst_bus_add_watch (bus, bus_callback, this);
+  gst_object_unref (bus);
 }
 
 GLuint Player::loadShader(GLenum type, const char *source) {
@@ -190,4 +194,36 @@ void Player::on_frame_ready(GstElement *sink, gint frame, gpointer data) {
     player->m_hasFrame = true;
     QMetaObject::invokeMethod(player, "renderLater", Qt::QueuedConnection);
   }
+}
+
+gboolean
+Player::bus_callback(GstBus * bus, GstMessage * msg, gpointer data) {
+  Q_UNUSED (bus);
+  Q_UNUSED (data);
+
+  gchar *debug;
+  GError *error;
+
+  switch (GST_MESSAGE_TYPE (msg)) {
+  case GST_MESSAGE_EOS:
+    g_printerr ("End of stream\n");
+    QGuiApplication::quit();
+    break;
+  case GST_MESSAGE_ERROR:
+    gst_message_parse_error (msg, &error, &debug);
+    g_printerr ("Error: %s (%s)\n", error->message, debug);
+    g_error_free (error);
+
+    if (debug) {
+      g_free (debug);
+    }
+
+    QGuiApplication::quit();
+    break;
+
+  default:
+    break;
+  }
+
+  return TRUE;
 }
