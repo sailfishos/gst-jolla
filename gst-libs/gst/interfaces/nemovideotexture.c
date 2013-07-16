@@ -17,6 +17,13 @@
  * Boston, MA 02111-1307, USA.
  */
 
+/**
+ * SECTION:nemo_gst_video_texture
+ * @short_description Interface for video rendering
+ *
+ * This is an interface which enables integrating video rendering into any OpenGL ES 2.0
+ * application.
+ */
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -69,6 +76,19 @@ nemo_gst_video_texture_iface_base_init (NemoGstVideoTextureClass * klass)
   static gboolean initialized = FALSE;
 
   if (!initialized) {
+    /**
+     * NemoGstVideoTextureClass::frame-ready
+     *
+     * Triggered when the sink element implementing this interface eith has
+     * a frame for the application to render or lost its frame.
+     * frame is an opaque frame identifier.
+     * frame will be -1 if the sink element has lost its frame
+     * or will be 0 or greater if there is a frame available for rendering.
+     *
+     * If frame is 0 or more, application should call nemo_gst_video_texture_acquire_frame()
+     * if its interested in rendering.
+     * If frame is -1 then application should release any acquired frames.
+     */
     nemo_gst_video_texture_iface_signals[SIGNAL_FRAME_READY] =
         g_signal_new ("frame-ready",
         G_TYPE_FROM_CLASS (klass),
@@ -88,6 +108,12 @@ nemo_gst_video_texture_iface_base_init (NemoGstVideoTextureClass * klass)
 static void
 nemo_gst_video_texture_iface_class_init (NemoGstVideoTextureClass * klass)
 {
+  /**
+   * NemoGstVideoTextureClass::egl-display
+   * EGL Display
+   * Application must provide a valid EGL display to the sink before attempting
+   * to call nemo_gst_video_texture_acquire_frame()
+   */
   g_object_interface_install_property (klass,
       g_param_spec_pointer ("egl-display",
           "EGL display ",
@@ -95,6 +121,15 @@ nemo_gst_video_texture_iface_class_init (NemoGstVideoTextureClass * klass)
           G_PARAM_READWRITE));
 }
 
+/**
+ * nemo_gst_video_texture_acquire_frame:
+ * @iface: #NemoGstVideoTexture of a GStreamer element
+ *
+ * Used to inform the sink that the application wants to render a frame.
+ * The sink should do any needed steps in order to prepare for rendering
+ *
+ * Returns: %TRUE on success and %FALSE on failure.
+ */
 gboolean
 nemo_gst_video_texture_acquire_frame (NemoGstVideoTexture * iface)
 {
@@ -107,6 +142,25 @@ nemo_gst_video_texture_acquire_frame (NemoGstVideoTexture * iface)
   return FALSE;
 }
 
+/**
+ * nemo_gst_video_texture_bind_frame:
+ * @iface: #NemoGstVideoTexture of a GStreamer element
+ *
+ * The sink will acquire the needed EGLImageKHR corresponding to the
+ * latest available frame for rendering. If the function returns TRUE then
+ * @image will carry the address of the EGLImageKHR corresponding to the latest frame.
+ *
+ * The sink ensures that the pointer remains valid until the application unbinds the frame.
+ * The application ensures that only one EGLImageKHR will be bound at a time.
+ *
+ * Application might get a different EGLImageKHR everytime this function gets called.
+ * Application should not try to use the pointer address in a hash or something.
+ *
+ * The time between bind and unbind should be as minimal as possible. Ideally it should
+ * be done at vsync to minimize the time of acquisition.
+ *
+ * Returns: %TRUE on success and %FALSE on failure.
+ */
 gboolean
 nemo_gst_video_texture_bind_frame (NemoGstVideoTexture * iface,
     EGLImageKHR * image)
@@ -120,6 +174,16 @@ nemo_gst_video_texture_bind_frame (NemoGstVideoTexture * iface,
   return FALSE;
 }
 
+/**
+ * nemo_gst_video_texture_unbind_frame:
+ * @iface: #NemoGstVideoTexture of a GStreamer element
+ *
+ * This call is used to inform the sink that the application is not
+ * interested in using the EGLImageKHR obtained from calling nemo_gst_video_texture_bind_frame
+ * anymore.
+ * Application must not access the EGLImageKHR pointer obtained by calling
+ * nemo_gst_video_texture_bind_frame anymore. Failing to do so will result in a crash.
+ */
 void
 nemo_gst_video_texture_unbind_frame (NemoGstVideoTexture * iface)
 {
@@ -130,6 +194,24 @@ nemo_gst_video_texture_unbind_frame (NemoGstVideoTexture * iface)
   }
 }
 
+/**
+  * nemo_gst_video_texture_release_frame:
+  * @iface: #NemoGstVideoTexture of a GStreamer element
+  * @sync: an optional fence object
+  *
+  * Called by the application to release a frame after rendering
+  * it via the GPU.
+  * The application is expected to use the
+  * EGL_KHR_sync_fence extension to place a fence into the
+  * GPU command stream after the rendering commands
+  * accessing the video frame.
+  * This sync object should be given as @sync, and the sink
+  * assumes ownership of that sync object.
+  *
+  * If @sync is not %NULL, then the sink implementation
+  * asynchronously waits until the specified fence
+  * object is signalled before reusing the image.
+  */
 void
 nemo_gst_video_texture_release_frame (NemoGstVideoTexture * iface,
     EGLSyncKHR sync)
@@ -141,6 +223,14 @@ nemo_gst_video_texture_release_frame (NemoGstVideoTexture * iface,
   }
 }
 
+/**
+ * nemo_gst_video_texture_frame_ready:
+ * @iface: #NemoGstVideoTexture of a GStreamer element
+ * @frame: frame number
+ *
+ * Called by the elements implementing the #NemoGstVideoTexture interface
+ * to trigger the frame-ready signal emission.
+ */
 void
 nemo_gst_video_texture_frame_ready (NemoGstVideoTexture * iface, gint frame)
 {
