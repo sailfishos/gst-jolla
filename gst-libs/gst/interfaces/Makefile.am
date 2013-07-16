@@ -1,9 +1,9 @@
-lib_LTLIBRARIES = libgstnemointerfaces-@GST_MAJORMINOR@.la
-libgstnemointerfacesincludedir = \
+lib_LTLIBRARIES = libgstnemointerface-@GST_MAJORMINOR@.la
+libgstnemointerfaceincludedir = \
         $(includedir)/gstreamer-@GST_MAJORMINOR@/gst/interfaces
 
-libgstnemointerfacesinclude_HEADERS = nemovideotexture.h
-libgstnemointerfaces_@GST_MAJORMINOR@_la_SOURCES = nemovideotexture.c
-libgstnemointerfaces_@GST_MAJORMINOR@_la_CFLAGS = $(GST_CFLAGS)
-libgstnemointerfaces_@GST_MAJORMINOR@_la_LIBADD = $(GST_LIBS)
-libgstnemointerfaces_@GST_MAJORMINOR@_la_LDFLAGS = $(GST_LIB_LDFLAGS) $(GST_LT_LDFLAGS)
+libgstnemointerfaceinclude_HEADERS = nemovideotexture.h
+libgstnemointerface_@GST_MAJORMINOR@_la_SOURCES = nemovideotexture.c
+libgstnemointerface_@GST_MAJORMINOR@_la_CFLAGS = $(GST_CFLAGS)
+libgstnemointerface_@GST_MAJORMINOR@_la_LIBADD = $(GST_LIBS)
+libgstnemointerface_@GST_MAJORMINOR@_la_LDFLAGS = $(GST_LIB_LDFLAGS) $(GST_LT_LDFLAGS)
