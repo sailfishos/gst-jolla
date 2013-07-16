@@ -119,6 +119,7 @@ GST_MAJORMINOR=0.10
 AC_SUBST(GST_MAJORMINOR)
 
 AC_CONFIG_FILES([Makefile
+		nemo-gstreamer-interfaces-$GST_MAJORMINOR.pc
 		gst-libs/Makefile
 		gst-libs/gst/Makefile
 		gst-libs/gst/gralloc/Makefile

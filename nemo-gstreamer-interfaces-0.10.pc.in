@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@/gstreamer-@GST_MAJORMINOR@
+pluginsdir=@libdir@/gstreamer-@GST_MAJORMINOR@
+
+Name: Nemomobile GStreamer textured video rendering interface.
+Description: GStreamer interface used by GStreamer sinks
+Requires: gstreamer-@GST_MAJORMINOR@ gstreamer-base-@GST_MAJORMINOR@
+Version: @VERSION@
+Libs: -L${libdir} -lgstnemointerfaces-@GST_MAJORMINOR@
+Cflags: -I${includedir}
