@@ -68,6 +68,17 @@ PKG_CHECK_MODULES(GST_VIDEO, [
   ])
 ])
 
+PKG_CHECK_MODULES(GLES2, [
+  glesv2
+], [
+  AC_SUBST(EGL_CFLAGS)
+  AC_SUBST(EGL_LIBS)
+], [
+  AC_MSG_ERROR([
+      EGL is missing
+  ])
+])
+
 PKG_CHECK_MODULES(EGL, [
   egl
 ], [

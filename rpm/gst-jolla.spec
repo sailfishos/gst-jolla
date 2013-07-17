@@ -10,6 +10,7 @@ BuildRequires:  pkgconfig(gstreamer-video-0.10)
 BuildRequires:  pkgconfig(android-headers)
 BuildRequires:  pkgconfig(egl)
 BuildRequires:  pkgconfig(libhardware)
+BuildRequires:  pkgconfig(glesv2)
 
 %description
 Collection of Jolla specific GStreamer plugins
