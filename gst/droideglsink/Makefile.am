@@ -19,7 +19,7 @@ libgstdroideglsink_la_LIBADD = $(GST_LIBS) \
                                $(GST_VIDEO_LIBS) \
                                $(GLES2_LIBS) \
                                $(EGL_LIBS) \
-			       $(top_builddir)/gst-libs/gst/interfaces/libgstnemointerface-$(GST_MAJORMINOR).la \
+			       $(top_builddir)/gst-libs/gst/interfaces/libgstnemointerfaces-$(GST_MAJORMINOR).la \
                                $(top_builddir)/gst-libs/gst/gralloc/libgstgralloc.la \
 			       $(top_builddir)/gst/nativebuffer/libgstnativebuffer.la
 

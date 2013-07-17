@@ -68,6 +68,17 @@ PKG_CHECK_MODULES(GST_VIDEO, [
   ])
 ])
 
+PKG_CHECK_MODULES(GLES2, [
+  glesv2
+], [
+  AC_SUBST(EGL_CFLAGS)
+  AC_SUBST(EGL_LIBS)
+], [
+  AC_MSG_ERROR([
+      EGL is missing
+  ])
+])
+
 PKG_CHECK_MODULES(EGL, [
   egl
 ], [
@@ -120,6 +131,8 @@ AC_SUBST(GST_MAJORMINOR)
 
 AC_CONFIG_FILES([Makefile
 		nemo-gstreamer-interfaces-$GST_MAJORMINOR.pc
+		libgstgralloc.pc
+		libgstnativebuffer.pc
 		gst-libs/Makefile
 		gst-libs/gst/Makefile
 		gst-libs/gst/gralloc/Makefile
