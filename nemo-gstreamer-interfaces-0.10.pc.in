@@ -8,5 +8,5 @@ Name: Nemomobile GStreamer textured video rendering interface.
 Description: GStreamer interface used by GStreamer sinks
 Requires: gstreamer-@GST_MAJORMINOR@ gstreamer-base-@GST_MAJORMINOR@
 Version: @VERSION@
-Libs: -L${libdir} -lgstnemointerface-@GST_MAJORMINOR@
+Libs: -L${libdir} -lgstnemointerfaces-@GST_MAJORMINOR@
 Cflags: -I${includedir}
