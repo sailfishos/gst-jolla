@@ -416,6 +416,10 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
     }
   }
 
+  if (!gst_pad_set_caps (GST_BASE_SINK_PAD (bsink), caps)) {
+    return FALSE;
+  }
+
   vsink->width = width;
   vsink->height = height;
 
@@ -459,6 +463,10 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   gboolean is_native = FALSE;
 
   GST_DEBUG_OBJECT (sink, "buffer alloc");
+
+  GST_LOG_OBJECT (sink, "buffer alloc buffer caps %" GST_PTR_FORMAT, caps);
+  GST_LOG_OBJECT (sink, "buffer alloc sink caps %" GST_PTR_FORMAT,
+      GST_PAD_CAPS (GST_BASE_SINK_PAD (bsink)));
 
   g_return_val_if_fail (sink->hal_format != -1, GST_FLOW_ERROR);
 
