@@ -185,9 +185,9 @@ gst_droid_egl_sink_destroy_buffer (GstNativeBuffer * buffer,
 {
   GST_DEBUG_OBJECT (sink, "destroy buffer");
 
-  gst_native_buffer_set_finalize_callback (buffer, NULL, NULL);
-
   g_ptr_array_remove (sink->buffers, buffer);
+
+  gst_native_buffer_set_finalize_callback (buffer, NULL, NULL);
 
   gst_droid_egl_sink_destroy_handle (sink,
       *gst_native_buffer_get_handle (buffer),
@@ -854,12 +854,12 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, GstCaps * caps)
       gst_native_buffer_new (handle, sink->gralloc, vsink->width, vsink->height,
       stride, BUFFER_ALLOC_USAGE, sink->hal_format);
 
+  gst_native_buffer_set_finalize_callback (buffer,
+      gst_droid_egl_sink_recycle_buffer, sink);
+
   g_mutex_lock (&sink->buffer_lock);
   g_ptr_array_add (sink->buffers, buffer);
   g_mutex_unlock (&sink->buffer_lock);
-
-  gst_native_buffer_set_finalize_callback (buffer,
-      gst_droid_egl_sink_recycle_buffer, sink);
 
   return buffer;
 }
