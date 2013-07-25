@@ -423,6 +423,8 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
     return FALSE;
   }
 
+  GST_OBJECT_LOCK (sink);
+
   vsink->width = width;
   vsink->height = height;
 
@@ -432,6 +434,8 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   sink->hal_format = hal_format;
 
   GST_LOG_OBJECT (sink, "hal format: 0x%x", hal_format);
+
+  GST_OBJECT_UNLOCK (sink);
 
   /* Now let's toss all buffers */
   g_mutex_lock (&sink->buffer_lock);
@@ -537,6 +541,7 @@ gst_droid_egl_sink_buffer_alloc (GstBaseSink * bsink, guint64 offset,
   return GST_FLOW_OK;
 }
 
+/* width object lock */
 static buffer_handle_t
 gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
 {
@@ -840,8 +845,12 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, GstCaps * caps)
     return NULL;
   }
 
+  GST_OBJECT_LOCK (sink);
+
   handle = gst_droid_egl_sink_alloc_handle (sink, &stride);
   if (!handle) {
+    GST_OBJECT_UNLOCK (sink);
+
     GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
         ("Could not allocate native buffer handle"), (NULL));
 
@@ -853,6 +862,8 @@ gst_droid_egl_sink_alloc_buffer (GstDroidEglSink * sink, GstCaps * caps)
   buffer =
       gst_native_buffer_new (handle, sink->gralloc, vsink->width, vsink->height,
       stride, BUFFER_ALLOC_USAGE, sink->hal_format);
+
+  GST_OBJECT_UNLOCK (sink);
 
   gst_native_buffer_set_finalize_callback (buffer,
       gst_droid_egl_sink_recycle_buffer, sink);
