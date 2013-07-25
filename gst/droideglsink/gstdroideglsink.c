@@ -73,6 +73,9 @@ static buffer_handle_t gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink,
     int *stride);
 static gboolean gst_droid_egl_sink_recycle_buffer (void *data,
     GstNativeBuffer * buffer);
+static gboolean gst_droid_egl_sink_free_buffer (void *data,
+    GstNativeBuffer * buffer);
+
 static void gst_droid_egl_sink_destroy_handle (GstDroidEglSink * sink,
     buffer_handle_t handle, GstGralloc * gralloc);
 
@@ -429,6 +432,22 @@ gst_droid_egl_sink_set_caps (GstBaseSink * bsink, GstCaps * caps)
   sink->hal_format = hal_format;
 
   GST_LOG_OBJECT (sink, "hal format: 0x%x", hal_format);
+
+  /* Now let's toss all buffers */
+  g_mutex_lock (&sink->buffer_lock);
+  while (sink->buffers->len) {
+    GstNativeBuffer *buffer =
+        g_ptr_array_remove_index_fast (sink->buffers, sink->buffers->len - 1);
+    gst_native_buffer_set_finalize_callback (buffer,
+        gst_droid_egl_sink_free_buffer, sink);
+  }
+
+  while (sink->free_buffers->length) {
+    GstNativeBuffer *buffer = g_queue_pop_head (sink->free_buffers);
+    gst_buffer_unref (GST_BUFFER (buffer));
+  }
+
+  g_mutex_unlock (&sink->buffer_lock);
 
   return TRUE;
 }
@@ -923,4 +942,16 @@ gst_droid_egl_sink_copy_buffer (GstDroidEglSink * sink, GstBuffer * buf)
   }
 
   return buffer;
+}
+
+static gboolean
+gst_droid_egl_sink_free_buffer (void *data, GstNativeBuffer * buffer)
+{
+  GstDroidEglSink *sink = (GstDroidEglSink *) data;
+  GST_DEBUG_OBJECT (sink, "free buffer");
+
+  gst_droid_egl_sink_destroy_handle (sink,
+      *gst_native_buffer_get_handle (buffer),
+      gst_native_buffer_get_gralloc (buffer));
+  return FALSE;
 }
