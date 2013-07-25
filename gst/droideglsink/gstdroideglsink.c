@@ -878,11 +878,12 @@ gst_droid_egl_sink_wait_and_destroy_sync (GstDroidEglSink * sink,
     return TRUE;
   }
 
-  /* TODO: this is returning 0x1 */
   res = sink->eglClientWaitSyncKHR (sink->dpy, sync, 0, EGL_FOREVER_KHR);
   GST_LOG_OBJECT (sink, "waiting for sync returned 0x%x", res);
 
-  if (res != EGL_CONDITION_SATISFIED_KHR) {
+  /* EGL_TIMEOUT_EXPIRED_KHR is unlikely to be returned because
+   * we use EGL_FOREVER_KHR as the timeout */
+  if (res == EGL_FALSE) {
     GST_WARNING_OBJECT (sink, "error 0x%x waiting for sync", eglGetError ());
     ret = FALSE;
   }
