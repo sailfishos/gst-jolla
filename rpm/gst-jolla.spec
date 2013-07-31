@@ -11,6 +11,7 @@ BuildRequires:  pkgconfig(android-headers)
 BuildRequires:  pkgconfig(egl)
 BuildRequires:  pkgconfig(libhardware)
 BuildRequires:  pkgconfig(glesv2)
+BuildRequires:  pkgconfig(nemo-gstreamer-interfaces-0.10)
 
 %description
 Collection of Jolla specific GStreamer plugins
@@ -46,22 +47,6 @@ Group: Applications/Multimedia
 %{summary}
 %post -n libgstreamer0.10-gralloc-devel -p /sbin/ldconfig
 %postun -n libgstreamer0.10-gralloc-devel -p /sbin/ldconfig
-
-%package -n nemo-gstreamer0.10-interfaces
-Summary: gstreamer interface used for video rendering
-Group: Applications/Multimedia
-%description -n nemo-gstreamer0.10-interfaces
-%{summary}
-%post -n nemo-gstreamer0.10-interfaces -p /sbin/ldconfig
-%postun -n nemo-gstreamer0.10-interfaces -p /sbin/ldconfig
-
-%package -n nemo-gstreamer0.10-interfaces-devel
-Summary: gstreamer interface used for video rendering devel package
-Group: Applications/Multimedia
-%description -n nemo-gstreamer0.10-interfaces-devel
-%{summary}
-%post -n nemo-gstreamer0.10-interfaces-devel -p /sbin/ldconfig
-%postun -n nemo-gstreamer0.10-interfaces-devel -p /sbin/ldconfig
 
 %package -n gstreamer0.10-droideglsink
 Summary: droideglsink HW accelerated sink
@@ -101,16 +86,6 @@ rm %{buildroot}/%{_libdir}/gstreamer-0.10/libgstcodecbin.so
 %{_libdir}/libgstgralloc.so
 %{_libdir}/pkgconfig/libgstgralloc.pc
 %{_includedir}/gstreamer-0.10/gst/gstgralloc.h
-
-%files -n nemo-gstreamer0.10-interfaces
-%defattr(-,root,root,-)
-%{_libdir}/libgstnemointerfaces-0.10.so.*
-
-%files -n nemo-gstreamer0.10-interfaces-devel
-%defattr(-,root,root,-)
-%{_libdir}/libgstnemointerfaces-0.10.so
-%{_libdir}/pkgconfig/nemo-gstreamer-interfaces-0.10.pc
-%{_includedir}/gstreamer-0.10/gst/interfaces/nemovideotexture.h
 
 %files -n gstreamer0.10-droideglsink
 %defattr(-,root,root,-)

@@ -1,1 +1,1 @@
-SUBDIRS = gralloc interfaces
+SUBDIRS = gralloc

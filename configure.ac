@@ -101,6 +101,17 @@ PKG_CHECK_MODULES(DROID, [
   ])
 ])
 
+PKG_CHECK_MODULES(NGI, [
+  nemo-gstreamer-interfaces-0.10
+], [
+  AC_SUBST(NGI_CFLAGS)
+  AC_SUBST(NGI_LIBS)
+], [
+  AC_MSG_ERROR([
+      nemo-gstreamer-interfaces-0.10 package is missing
+  ])
+])
+
 dnl check if compiler understands -Wall (if yes, add -Wall to GST_CFLAGS)
 AC_MSG_CHECKING([to see if compiler understands -Wall])
 save_CFLAGS="$CFLAGS"
@@ -130,13 +141,11 @@ GST_MAJORMINOR=0.10
 AC_SUBST(GST_MAJORMINOR)
 
 AC_CONFIG_FILES([Makefile
-		nemo-gstreamer-interfaces-$GST_MAJORMINOR.pc
 		libgstgralloc.pc
 		libgstnativebuffer.pc
 		gst-libs/Makefile
 		gst-libs/gst/Makefile
 		gst-libs/gst/gralloc/Makefile
-		gst-libs/gst/interfaces/Makefile
 		gst/Makefile
 		gst/codecbin/Makefile
 		gst/nativebuffer/Makefile
