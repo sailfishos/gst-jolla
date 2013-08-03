@@ -10,17 +10,16 @@ libgstdroideglsink_la_CFLAGS = $(DROID_CFLAGS) \
                                -I$(top_builddir)/gst/nativebuffer/ \
                                $(GST_CFLAGS) \
 			       $(GST_VIDEO_CFLAGS) \
-			       $(MGI_CFLAGS) \
+			       $(NGI_CFLAGS) \
 		               $(GLES2_CFLAGS) \
-			       $(EGL_CFLAGS) \
-			       $(MGI_CFLAGS)
+			       $(EGL_CFLAGS)
 
 libgstdroideglsink_la_LIBADD = $(GST_LIBS) \
                                $(GST_VIDEO_LIBS) \
                                $(GST_VIDEO_LIBS) \
                                $(GLES2_LIBS) \
                                $(EGL_LIBS) \
-			       $(MGI_LIBS) \
+			       $(NGI_LIBS) \
                                $(top_builddir)/gst-libs/gst/gralloc/libgstgralloc.la \
 			       $(top_builddir)/gst/nativebuffer/libgstnativebuffer.la
 
