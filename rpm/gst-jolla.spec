@@ -27,6 +27,7 @@ Group: Applications/Multimedia
 %package -n libgstreamer0.10-nativebuffer-devel
 Summary: gstreamer native buffer library devel package
 Group: Applications/Multimedia
+Requires: libgstreamer0.10-nativebuffer = %{version}-%{release}
 %description -n libgstreamer0.10-nativebuffer-devel
 %{summary}
 %post -n libgstreamer0.10-nativebuffer-devel -p /sbin/ldconfig
@@ -43,6 +44,7 @@ Group: Applications/Multimedia
 %package -n libgstreamer0.10-gralloc-devel
 Summary: gstreamer gralloc library devel package
 Group: Applications/Multimedia
+Requires: libgstreamer0.10-gralloc = %{version}-%{release}
 %description -n libgstreamer0.10-gralloc-devel
 %{summary}
 %post -n libgstreamer0.10-gralloc-devel -p /sbin/ldconfig
