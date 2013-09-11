@@ -829,6 +829,7 @@ gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
   old_buffer = sink->last_buffer;
   sink->last_buffer = NULL;
   sync = sink->sync;
+  sink->sync = EGL_NO_SYNC_KHR;
   g_mutex_unlock (&sink->buffer_lock);
 
   gst_droid_egl_sink_destroy_sync (sink, sync);
