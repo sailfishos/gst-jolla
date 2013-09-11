@@ -807,6 +807,7 @@ gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstNativeBuffer *old_buffer;
   EGLSyncKHR sync;
+  gboolean handle_event = FALSE;
 
   GST_DEBUG_OBJECT (sink, "event %" GST_PTR_FORMAT, event);
 
@@ -814,9 +815,14 @@ gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
     case GST_EVENT_FLUSH_START:
     case GST_EVENT_FLUSH_STOP:
     case GST_EVENT_EOS:
+      handle_event = TRUE;
       break;
     default:
-      return FALSE;
+      break;
+  }
+
+  if (!handle_event) {
+    goto out;
   }
 
   g_mutex_lock (&sink->buffer_lock);
@@ -835,6 +841,11 @@ gst_droid_egl_sink_event (GstBaseSink * bsink, GstEvent * event)
   /* We will simply gamble and not touch the acauired_buffer and hope
      application will just release it ASAP. */
   nemo_gst_video_texture_frame_ready (NEMO_GST_VIDEO_TEXTURE (sink), -1);
+
+out:
+  if (GST_BASE_SINK_CLASS (parent_class)->event) {
+    return GST_BASE_SINK_CLASS (parent_class)->event (bsink, event);
+  }
 
   return TRUE;
 }
