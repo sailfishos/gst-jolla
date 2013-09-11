@@ -38,7 +38,12 @@ int main(int argc, char **argv)
 
       GstElement *pipe = gst_element_factory_make ("playbin2", NULL);
       GstElement *sink = gst_element_factory_make ("droideglsink", NULL);
-      g_object_set (pipe, "video-sink", sink, "flags", 99, "uri", file, NULL);
+      g_object_set (pipe, "video-sink", sink, "uri", file, NULL);
+
+      if (!QString(argv[1]).endsWith(".ogg")) {
+	g_object_set (pipe, "flags", 99, NULL);
+      }
+
       g_free (file);
 
       player.setPipeline(pipe);
