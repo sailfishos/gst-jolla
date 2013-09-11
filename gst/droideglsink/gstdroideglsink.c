@@ -152,6 +152,14 @@ gst_droid_egl_sink_class_init (GstDroidEglSinkClass * klass)
       GST_DEBUG_FUNCPTR (gst_droid_egl_sink_buffer_alloc);
   basesink_class->event = GST_DEBUG_FUNCPTR (gst_droid_egl_sink_event);
 
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_show_frame);
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_start);
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_stop);
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_set_caps);
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_get_times);
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_buffer_alloc);
+  GST_DEBUG_REGISTER_FUNCPTR (gst_droid_egl_sink_event);
+
   g_object_class_install_property (gobject_class, PROP_EGL_DISPLAY,
       g_param_spec_pointer ("egl-display",
           "EGL display ",
