@@ -667,7 +667,7 @@ gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   gboolean ret;
 
-  GST_DEBUG_OBJECT (sink, "acquire frame");
+  GST_LOG_OBJECT (sink, "acquire frame");
 
   if (sink->dpy == EGL_NO_DISPLAY) {
     return FALSE;
@@ -683,6 +683,8 @@ gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
   }
 
   g_mutex_unlock (&sink->buffer_lock);
+
+  GST_LOG_OBJECT (sink, "acquire frame: %i", ret);
 
   return ret;
 }
