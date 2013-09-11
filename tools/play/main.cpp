@@ -2,6 +2,7 @@
 #include "player.h"
 #include <gst/gst.h>
 #include <iostream>
+#include <QSocketNotifier>
 
 GstElement *findSink(GstElement *pipeline) {
   for (int x = 0; x < GST_BIN_NUMCHILDREN (GST_BIN (pipeline)); x++) {
@@ -31,6 +32,9 @@ int main(int argc, char **argv)
     }
 
     Player player;
+
+    QSocketNotifier *notifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read);
+    QObject::connect(notifier, SIGNAL(activated(int)), &player, SLOT(read()));
 
     if (argc == 2) {
       // Most likely it's a file.

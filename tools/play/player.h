@@ -12,6 +12,8 @@ typedef EGLSyncKHR(EGLAPIENTRYP PFNEGLCREATESYNCKHRPROC)(EGLDisplay dpy, EGLenum
                                                           const EGLint *attrib_list);
 
 class Player : public OpenGLWindow {
+  Q_OBJECT
+
 public:
   Player();
 
@@ -23,7 +25,13 @@ public:
 
   bool start();
 
+public slots:
+  void read();
+
 private:
+  gint64 position();
+  void setPosition(gint64 pos);
+
   GLuint loadShader(GLenum type, const char *source);
 
   static void on_frame_ready(GstElement *sink, gint frame, gpointer data);
