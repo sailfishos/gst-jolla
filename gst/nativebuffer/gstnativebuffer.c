@@ -28,6 +28,8 @@ GST_DEBUG_CATEGORY_STATIC (nativebuffer_debug);
 static void gst_native_buffer_finalize (GstNativeBuffer * buf);
 static void gst_native_buffer_inc_ref (struct android_native_base_t *base);
 static void gst_native_buffer_dec_ref (struct android_native_base_t *base);
+static gboolean _gst_native_buffer_destroy_buffer (void *data,
+    GstNativeBuffer * buffer);
 
 static GstBufferClass *parent_class;
 
@@ -300,4 +302,22 @@ gboolean
 gst_native_buffer_is_locked (GstNativeBuffer * buffer)
 {
   return buffer->priv->locked;
+}
+
+static gboolean
+_gst_native_buffer_destroy_buffer (void *data, GstNativeBuffer * buffer)
+{
+  gst_native_buffer_unlock (buffer);
+
+  buffer_handle_t *handle = gst_native_buffer_get_handle (buffer);
+  gst_gralloc_free (buffer->priv->gralloc, *handle);
+
+  return FALSE;
+}
+
+void
+gst_native_buffer_set_auto_destroy (GstNativeBuffer * buffer)
+{
+  gst_native_buffer_set_finalize_callback (buffer,
+      _gst_native_buffer_destroy_buffer, NULL);
 }

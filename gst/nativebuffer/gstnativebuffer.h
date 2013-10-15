@@ -70,6 +70,7 @@ GstGralloc *gst_native_buffer_get_gralloc (GstNativeBuffer *buffer);
 struct ANativeWindowBuffer *gst_native_buffer_get_native_buffer (GstNativeBuffer *buffer);
 gboolean gst_native_buffer_is_locked (GstNativeBuffer *buffer);
 void gst_native_buffer_set_finalize_callback (GstNativeBuffer *buffer, GstNativeBufferFinalizeCallback cb, void *data);
+void gst_native_buffer_set_auto_destroy (GstNativeBuffer *buffer);
 
 G_END_DECLS
 
