@@ -94,6 +94,8 @@ static gboolean gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink,
 static void gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink);
 static void gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink,
     EGLSyncKHR sync);
+static gboolean gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * bsink,
+    NemoGstVideoTextureFrameInfo * info);
 
 static GstNativeBuffer
     * gst_droid_egl_sink_find_free_buffer_unlocked (GstDroidEglSink * sink);
@@ -653,6 +655,7 @@ gst_droid_egl_sink_videotexture_interface_init (NemoGstVideoTextureClass *
   iface->bind_frame = gst_droid_egl_sink_bind_frame;
   iface->unbind_frame = gst_droid_egl_sink_unbind_frame;
   iface->release_frame = gst_droid_egl_sink_release_frame;
+  iface->get_frame_info = gst_droid_egl_sink_get_frame_info;
 }
 
 static gboolean
@@ -774,6 +777,35 @@ gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
   gst_buffer_unref (GST_BUFFER (buffer));
 
   gst_droid_egl_sink_destroy_sync (sink, our_sync);
+}
+
+static gboolean
+gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * bsink,
+    NemoGstVideoTextureFrameInfo * info)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+
+  GST_DEBUG_OBJECT (sink, "get frame info");
+
+  if (!info) {
+    return FALSE;
+  }
+
+  g_mutex_lock (&sink->buffer_lock);
+  if (!sink->acquired_buffer) {
+    g_mutex_unlock (&sink->buffer_lock);
+    GST_WARNING_OBJECT (sink, "get frame info without acquiring first");
+    return FALSE;
+  }
+
+  info->timestamp = GST_BUFFER_TIMESTAMP (sink->acquired_buffer);
+  info->duration = GST_BUFFER_DURATION (sink->acquired_buffer);
+  info->offset = GST_BUFFER_OFFSET (sink->acquired_buffer);
+  info->offset_end = GST_BUFFER_OFFSET_END (sink->acquired_buffer);
+
+  g_mutex_unlock (&sink->buffer_lock);
+
+  return TRUE;
 }
 
 static GstNativeBuffer *
