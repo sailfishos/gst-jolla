@@ -672,10 +672,6 @@ gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
 
   GST_LOG_OBJECT (sink, "acquire frame");
 
-  if (sink->dpy == EGL_NO_DISPLAY) {
-    return FALSE;
-  }
-
   g_mutex_lock (&sink->buffer_lock);
 
   ret = (sink->last_buffer != NULL);
@@ -766,6 +762,10 @@ gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
   EGLSyncKHR our_sync;
 
   GST_DEBUG_OBJECT (sink, "release frame with sync %p", sync);
+
+  if (sync && sink->dpy == EGL_NO_DISPLAY) {
+    GST_WARNING_OBJECT (sink, "fence sync without an EGL display");
+  }
 
   g_mutex_lock (&sink->buffer_lock);
   buffer = sink->acquired_buffer;
