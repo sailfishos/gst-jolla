@@ -759,7 +759,7 @@ gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
 {
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
   GstNativeBuffer *buffer;
-  EGLSyncKHR our_sync;
+  EGLSyncKHR our_sync = NULL;
 
   GST_DEBUG_OBJECT (sink, "release frame with sync %p", sync);
 
@@ -770,13 +770,19 @@ gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
   g_mutex_lock (&sink->buffer_lock);
   buffer = sink->acquired_buffer;
   sink->acquired_buffer = NULL;
-  our_sync = sink->sync;
-  sink->sync = sync;
+
+  if (sync) {
+    our_sync = sink->sync;
+    sink->sync = sync;
+  }
+
   g_mutex_unlock (&sink->buffer_lock);
 
   gst_buffer_unref (GST_BUFFER (buffer));
 
-  gst_droid_egl_sink_destroy_sync (sink, our_sync);
+  if (our_sync) {
+    gst_droid_egl_sink_destroy_sync (sink, our_sync);
+  }
 }
 
 static gboolean
