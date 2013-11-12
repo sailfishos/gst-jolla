@@ -151,6 +151,7 @@ AC_CONFIG_FILES([Makefile
 		gst/nativebuffer/Makefile
 		gst/hwcsink/Makefile
 		gst/droideglsink/Makefile
+		gst/droidbufferunpack/Makefile
 		])
 AC_OUTPUT
 
