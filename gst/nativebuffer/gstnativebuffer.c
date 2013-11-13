@@ -147,6 +147,7 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int width,
     int height, int stride, int usage, int format)
 {
   GstNativeBuffer *buffer;
+  GstStructure *s;
 
   buffer = (GstNativeBuffer *) gst_mini_object_new (GST_TYPE_NATIVE_BUFFER);
 
@@ -161,6 +162,11 @@ gst_native_buffer_new (buffer_handle_t handle, GstGralloc * gralloc, int width,
   buffer->priv->native.format = format;
 
   gst_buffer_set_data (buffer, (guint8 *) handle, sizeof (handle));
+
+  s = gst_structure_new (GST_NATIVE_BUFFER_QDATA, GST_NATIVE_BUFFER_BUFFER_NAME,
+      G_TYPE_POINTER, &buffer->priv->native, NULL);
+  gst_buffer_set_qdata (GST_BUFFER (buffer),
+      g_quark_from_string (GST_NATIVE_BUFFER_QDATA), s);
 
   return buffer;
 }

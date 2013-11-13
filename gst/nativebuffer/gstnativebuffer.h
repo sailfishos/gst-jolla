@@ -25,6 +25,8 @@
 #include "gstgralloc.h"
 
 #define GST_NATIVE_BUFFER_NAME "video/x-android-buffer"
+#define GST_NATIVE_BUFFER_QDATA "GstNativeBufferData"
+#define GST_NATIVE_BUFFER_BUFFER_NAME "ANativeWindowBuffer"
 
 G_BEGIN_DECLS
 
