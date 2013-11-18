@@ -88,13 +88,13 @@ gst_droid_egl_sink_videotexture_interface_init (NemoGstVideoTextureClass *
     iface);
 static gboolean gst_droid_egl_sink_interfaces_supported (GstDroidEglSink * sink,
     GType type);
-static gboolean gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink);
-static gboolean gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink,
+static gboolean gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * iface);
+static gboolean gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * iface,
     EGLImageKHR * image);
-static void gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink);
-static void gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink,
+static void gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * iface);
+static void gst_droid_egl_sink_release_frame (NemoGstVideoTexture * iface,
     EGLSyncKHR sync);
-static gboolean gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * bsink,
+static gboolean gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * iface,
     NemoGstVideoTextureFrameInfo * info);
 
 static GstNativeBuffer
@@ -665,9 +665,9 @@ gst_droid_egl_sink_interfaces_supported (GstDroidEglSink * sink, GType type)
 }
 
 static gboolean
-gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
+gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * iface)
 {
-  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (iface);
   gboolean ret;
 
   GST_LOG_OBJECT (sink, "acquire frame");
@@ -693,9 +693,9 @@ gst_droid_egl_sink_acquire_frame (NemoGstVideoTexture * bsink)
 }
 
 static gboolean
-gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
+gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * iface, EGLImageKHR * image)
 {
-  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (iface);
   EGLint eglImgAttrs[] =
       { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 
@@ -738,9 +738,9 @@ gst_droid_egl_sink_bind_frame (NemoGstVideoTexture * bsink, EGLImageKHR * image)
 }
 
 static void
-gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink)
+gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * iface)
 {
-  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (iface);
   GstNativeBuffer *buffer;
   EGLBoolean res = EGL_TRUE;
 
@@ -759,9 +759,9 @@ gst_droid_egl_sink_unbind_frame (NemoGstVideoTexture * bsink)
 }
 
 static void
-gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
+gst_droid_egl_sink_release_frame (NemoGstVideoTexture * iface, EGLSyncKHR sync)
 {
-  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (iface);
   GstNativeBuffer *buffer;
   EGLSyncKHR our_sync;
 
@@ -780,10 +780,10 @@ gst_droid_egl_sink_release_frame (NemoGstVideoTexture * bsink, EGLSyncKHR sync)
 }
 
 static gboolean
-gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * bsink,
+gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * iface,
     NemoGstVideoTextureFrameInfo * info)
 {
-  GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (iface);
 
   GST_DEBUG_OBJECT (sink, "get frame info");
 
