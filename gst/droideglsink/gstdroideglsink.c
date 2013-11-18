@@ -96,6 +96,9 @@ static void gst_droid_egl_sink_release_frame (NemoGstVideoTexture * iface,
     EGLSyncKHR sync);
 static gboolean gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * iface,
     NemoGstVideoTextureFrameInfo * info);
+static const GstStructure
+    * gst_droid_egl_sink_get_frame_qdata (NemoGstVideoTexture * iface,
+    const GQuark quark);
 
 static GstNativeBuffer
     * gst_droid_egl_sink_find_free_buffer_unlocked (GstDroidEglSink * sink);
@@ -656,6 +659,7 @@ gst_droid_egl_sink_videotexture_interface_init (NemoGstVideoTextureClass *
   iface->unbind_frame = gst_droid_egl_sink_unbind_frame;
   iface->release_frame = gst_droid_egl_sink_release_frame;
   iface->get_frame_info = gst_droid_egl_sink_get_frame_info;
+  iface->get_frame_qdata = gst_droid_egl_sink_get_frame_qdata;
 }
 
 static gboolean
@@ -806,6 +810,29 @@ gst_droid_egl_sink_get_frame_info (NemoGstVideoTexture * iface,
   g_mutex_unlock (&sink->buffer_lock);
 
   return TRUE;
+}
+
+static const GstStructure *
+gst_droid_egl_sink_get_frame_qdata (NemoGstVideoTexture * iface,
+    const GQuark quark)
+{
+  GstDroidEglSink *sink = GST_DROID_EGL_SINK (iface);
+  const GstStructure *qdata = NULL;
+
+  GST_DEBUG_OBJECT (sink, "get frame qdata");
+
+  g_mutex_lock (&sink->buffer_lock);
+  if (!sink->acquired_buffer) {
+    g_mutex_unlock (&sink->buffer_lock);
+    GST_WARNING_OBJECT (sink, "get frame qdata without acquiring first");
+    return NULL;
+  }
+
+  qdata = gst_buffer_get_qdata (GST_BUFFER (sink->acquired_buffer), quark);
+
+  g_mutex_unlock (&sink->buffer_lock);
+
+  return qdata;
 }
 
 static GstNativeBuffer *
