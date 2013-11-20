@@ -22,6 +22,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include "gstgralloc.h"
+#include <gst/gst.h>
 
 G_DEFINE_TYPE (GstGralloc, gst_gralloc, GST_TYPE_MINI_OBJECT);
 
@@ -98,7 +99,8 @@ gst_gralloc_allocate (GstGralloc * gralloc, int width, int height,
   int err = gralloc->allocator->alloc (gralloc->allocator,
       width, height, format, usage, &handle, stride);
   if (err != 0) {
-    g_warning ("Failed to allocate buffer");
+    g_warning ("Error 0x%x while trying to allocate buffer", err);
+    GST_ERROR ("Error 0x%x while trying to allocate buffer", err);
   }
 
   return handle;
