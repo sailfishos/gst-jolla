@@ -32,6 +32,6 @@ plugin_init (GstPlugin * plugin)
       gst_droid_egl_sink_get_type ());
 }
 
-GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, "droidegl",
+GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, droidegl,
     "Android native buffer EGL", plugin_init, VERSION, "LGPL", PACKAGE_NAME,
     "http://jollamobile.com/")

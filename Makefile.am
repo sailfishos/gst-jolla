@@ -1,11 +1,8 @@
 SUBDIRS = gst-libs gst
 
 EXTRA_DIST = autogen.sh \
-	     libgstnativebuffer.pc.in \
-	     libgstnativebuffer.pc \
-	     libgstgralloc.pc.in \
-	     libgstgralloc.pc
+	libgstanativewindowbuffer-1.0.pc.in \
+	libgstanativewindowbuffer-1.0.pc
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libgstnativebuffer.pc \
-		 libgstgralloc.pc
+pkgconfig_DATA = libgstanativewindowbuffer-1.0.pc

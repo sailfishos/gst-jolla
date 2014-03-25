@@ -1,20 +1,22 @@
 #include <QtGui/QGuiApplication>
+#include <QUrl>
+
 #include "player.h"
 #include <gst/gst.h>
 #include <iostream>
 #include <QSocketNotifier>
 
 GstElement *findSink(GstElement *pipeline) {
-  for (int x = 0; x < GST_BIN_NUMCHILDREN (GST_BIN (pipeline)); x++) {
-    gpointer data = g_list_nth_data (GST_BIN (pipeline)->children, x);
-    if (GST_IS_ELEMENT (data)) {
-      GstElement *elem = GST_ELEMENT (data);
-      if (GST_PLUGIN_FEATURE_NAME (GST_PLUGIN_FEATURE (gst_element_get_factory (elem))) ==
-	  QLatin1String ("droideglsink")) {
-	return elem;
-      }
-    }
-  }
+//  for (int x = 0; x < GST_BIN_NUMCHILDREN (GST_BIN (pipeline)); x++) {
+//    gpointer data = g_list_nth_data (GST_BIN (pipeline)->children, x);
+//    if (GST_IS_ELEMENT (data)) {
+//      GstElement *elem = GST_ELEMENT (data);
+//      if (GST_PLUGIN_FEATURE_NAME (GST_PLUGIN_FEATURE (gst_element_get_factory (elem))) ==
+//	  QLatin1String ("droideglsink")) {
+//	return elem;
+//      }
+//    }
+//  }
 
   return NULL;
 }
@@ -38,17 +40,18 @@ int main(int argc, char **argv)
 
     if (argc == 2) {
       // Most likely it's a file.
-      gchar *file = g_strdup_printf ("file://%s/%s", g_get_current_dir (), argv[1]);
+      const QUrl baseUrl = QUrl::fromLocalFile(QString::fromUtf8(g_get_current_dir ()) + QLatin1Char('/'));
+      const QByteArray resolvedUrl = baseUrl.resolved(QUrl(QString::fromUtf8(argv[1]))).toString().toUtf8();
 
-      GstElement *pipe = gst_element_factory_make ("playbin2", NULL);
+      GstElement *pipe = gst_element_factory_make ("playbin", NULL);
       GstElement *sink = gst_element_factory_make ("droideglsink", NULL);
-      g_object_set (pipe, "video-sink", sink, "uri", file, NULL);
 
-      if (!QString(argv[1]).endsWith(".ogg")) {
-	g_object_set (pipe, "flags", 99, NULL);
+      g_object_set (pipe, "video-sink", sink, "uri", resolvedUrl.constData(), NULL);
+
+      g_object_set (pipe, "flags", 3, NULL);
+      if (!resolvedUrl.endsWith(".ogg")) {
+//	g_object_set (pipe, "flags", 99, NULL);
       }
-
-      g_free (file);
 
       player.setPipeline(pipe);
       player.setSink(sink);

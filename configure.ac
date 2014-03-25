@@ -1,11 +1,11 @@
 dnl required version of autoconf
 AC_PREREQ([2.53])
 
-AC_INIT([gst-jolla],[0.10.0])
+AC_INIT([gst-jolla],[1.0.0])
 
 dnl required versions of gstreamer and plugins-base
-GST_REQUIRED=0.10.16
-GSTPB_REQUIRED=0.10.16
+GST_REQUIRED=1.3.0
+GSTPB_REQUIRED=1.3.0
 
 AC_CONFIG_SRCDIR([gst/Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -15,6 +15,13 @@ AM_INIT_AUTOMAKE([1.10])
 
 dnl enable mainainer mode by default
 AM_MAINTAINER_MODE([enable])
+
+dnl our libraries and install dirs use GST_API_VERSION in the filename
+dnl to allow side-by-side installation of different API versions
+GST_API_VERSION=1.0
+AC_SUBST(GST_API_VERSION)
+AC_DEFINE_UNQUOTED(GST_API_VERSION, "$GST_API_VERSION",
+  [GStreamer API Version])
 
 dnl check for tools (compiler etc.)
 AC_PROG_CC
@@ -32,18 +39,18 @@ dnl Check for the required version of GStreamer core (and gst-plugins-base)
 dnl This will export GST_CFLAGS and GST_LIBS variables for use in Makefile.am
 dnl
 dnl If you need libraries from gst-plugins-base here, also add:
-dnl for libgstaudio-0.10: gstreamer-audio-0.10 >= $GST_REQUIRED
-dnl for libgstvideo-0.10: gstreamer-video-0.10 >= $GST_REQUIRED
-dnl for libgsttag-0.10: gstreamer-tag-0.10 >= $GST_REQUIRED
-dnl for libgstpbutils-0.10: gstreamer-pbutils-0.10 >= $GST_REQUIRED
-dnl for libgstfft-0.10: gstreamer-fft-0.10 >= $GST_REQUIRED
-dnl for libgstinterfaces-0.10: gstreamer-interfaces-0.10 >= $GST_REQUIRED
-dnl for libgstrtp-0.10: gstreamer-rtp-0.10 >= $GST_REQUIRED
-dnl for libgstrtsp-0.10: gstreamer-rtsp-0.10 >= $GST_REQUIRED
+dnl for libgstaudio-1.0: gstreamer-audio-1.0 >= $GST_REQUIRED
+dnl for libgstvideo-1.0: gstreamer-video-1.0 >= $GST_REQUIRED
+dnl for libgsttag-1.0: gstreamer-tag-1.0 >= $GST_REQUIRED
+dnl for libgstpbutils-1.0: gstreamer-pbutils-1.0 >= $GST_REQUIRED
+dnl for libgstfft-1.0: gstreamer-fft-1.0 >= $GST_REQUIRED
+dnl for libgstinterfaces-1.0: gstreamer-interfaces-1.0 >= $GST_REQUIRED
+dnl for libgstrtp-1.0: gstreamer-rtp-1.0 >= $GST_REQUIRED
+dnl for libgstrtsp-1.0: gstreamer-rtsp-1.0 >= $GST_REQUIRED
 dnl etc.
 PKG_CHECK_MODULES(GST, [
-  gstreamer-0.10 >= $GST_REQUIRED
-  gstreamer-base-0.10 >= $GST_REQUIRED
+  gstreamer-$GST_API_VERSION >= $GST_REQUIRED
+  gstreamer-base-$GST_API_VERSION >= $GST_REQUIRED
 ], [
   AC_SUBST(GST_CFLAGS)
   AC_SUBST(GST_LIBS)
@@ -51,14 +58,14 @@ PKG_CHECK_MODULES(GST, [
   AC_MSG_ERROR([
       You need to install or upgrade the GStreamer development
       packages on your system. On debian-based systems these are
-      libgstreamer0.10-dev and libgstreamer-plugins-base0.10-dev.
-      on RPM-based systems gstreamer0.10-devel, libgstreamer0.10-devel
+      libgstreamer1.0-dev and libgstreamer-plugins-base1.0-dev.
+      on RPM-based systems gstreamer1.0-devel, libgstreamer1.0-devel
       or similar. The minimum version required is $GST_REQUIRED.
   ])
 ])
 
 PKG_CHECK_MODULES(GST_VIDEO, [
-  gstreamer-video-0.10 >= $GST_REQUIRED
+  gstreamer-video-$GST_API_VERSION >= $GST_REQUIRED
 ], [
   AC_SUBST(GST_VIDEO_CFLAGS)
   AC_SUBST(GST_VIDEO_LIBS)
@@ -101,14 +108,14 @@ PKG_CHECK_MODULES(DROID, [
   ])
 ])
 
-PKG_CHECK_MODULES(NGI, [
-  nemo-gstreamer-interfaces-0.10
+PKG_CHECK_MODULES(NEMO_GST_INTERFACES, [
+  nemo-gstreamer-interfaces-1.0
 ], [
-  AC_SUBST(NGI_CFLAGS)
-  AC_SUBST(NGI_LIBS)
+  AC_SUBST(NEMO_GST_INTERFACES_CFLAGS)
+  AC_SUBST(NEMO_GST_INTERFACES_LIBS)
 ], [
   AC_MSG_ERROR([
-      nemo-gstreamer-interfaces-0.10 package is missing
+      nemo-gstreamer-interfaces package is missing
   ])
 ])
 
@@ -125,9 +132,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([ ], [ ])], [
 
 dnl set the plugindir where plugins should be installed (for src/Makefile.am)
 if test "x${prefix}" = "x$HOME"; then
-  plugindir="$HOME/.gstreamer-0.10/plugins"
+  plugindir="$HOME/.gstreamer-$GST_API_VERSION/plugins"
 else
-  plugindir="\$(libdir)/gstreamer-0.10"
+  plugindir="\$(libdir)/gstreamer-$GST_API_VERSION"
 fi
 AC_SUBST(plugindir)
 
@@ -137,20 +144,16 @@ AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 AC_CHECK_LIB(hardware, hw_get_module, [], AC_MSG_ERROR([libhardware not found]))
 
-GST_MAJORMINOR=0.10
+GST_MAJORMINOR=1.0
 AC_SUBST(GST_MAJORMINOR)
 
 AC_CONFIG_FILES([Makefile
-		libgstgralloc.pc
-		libgstnativebuffer.pc
+		libgstanativewindowbuffer-1.0.pc
+		gst/Makefile
+		gst/droideglsink/Makefile
 		gst-libs/Makefile
 		gst-libs/gst/Makefile
-		gst-libs/gst/gralloc/Makefile
-		gst/Makefile
-		gst/codecbin/Makefile
-		gst/nativebuffer/Makefile
-		gst/hwcsink/Makefile
-		gst/droideglsink/Makefile
+		gst-libs/gst/anativewindowbuffer/Makefile
 		])
 AC_OUTPUT
 

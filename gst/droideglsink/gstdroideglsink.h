@@ -23,8 +23,6 @@
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <gst/video/gstvideosink.h>
-#include "gstgralloc.h"
-#include "gstnativebuffer.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
@@ -53,26 +51,19 @@ typedef EGLBoolean(EGLAPIENTRYP PFNEGLDESTROYSYNCKHRORIC)(EGLDisplay dpy, EGLSyn
 struct _GstDroidEglSink {
   GstVideoSink parent;
 
-  GstGralloc *gralloc;
-
-  int fps_n;
-  int fps_d;
-
-  GstVideoFormat format;
-  int hal_format;
-
-  GPtrArray *buffers;
+  GstVideoInfo video_info;
 
   EGLDisplay dpy;
 
-  GstNativeBuffer *last_buffer;
-  GstNativeBuffer *acquired_buffer;
+  GstBufferPool *pool;
+  GstCaps *caps;
+
+  GstBuffer *last_buffer;
+  GstBuffer *acquired_buffer;
   GMutex buffer_lock;
 
   EGLSyncKHR sync;
   EGLImageKHR image;
-
-  GQueue *free_buffers;
 
   PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
   PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;

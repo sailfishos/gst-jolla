@@ -1,1 +1,1 @@
-SUBDIRS = codecbin nativebuffer droideglsink
+SUBDIRS = droideglsink

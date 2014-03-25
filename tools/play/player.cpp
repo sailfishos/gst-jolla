@@ -242,7 +242,7 @@ void Player::read() {
 gint64 Player::position() {
   GstFormat format = GST_FORMAT_TIME;
   gint64 pos = 0;
-  if (gst_element_query_position(m_pipeline, &format, &pos)) {
+  if (gst_element_query_position(m_pipeline, format, &pos)) {
     pos /= 1000000;
   }
 

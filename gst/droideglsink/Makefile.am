@@ -6,13 +6,12 @@ libgstdroideglsink_la_SOURCES = plugin.c \
 
 libgstdroideglsink_la_CFLAGS = $(DROID_CFLAGS) \
 			       -I$(top_builddir)/gst-libs \
-                               -I$(top_builddir)/gst-libs/gst/gralloc/ \
-                               -I$(top_builddir)/gst/nativebuffer/ \
                                $(GST_CFLAGS) \
 			       $(GST_VIDEO_CFLAGS) \
 			       $(NGI_CFLAGS) \
 		               $(GLES2_CFLAGS) \
-			       $(EGL_CFLAGS)
+                               $(EGL_CFLAGS) \
+                               $(NEMO_GST_INTERFACES_CFLAGS)
 
 libgstdroideglsink_la_LIBADD = $(GST_LIBS) \
                                $(GST_VIDEO_LIBS) \
@@ -20,8 +19,8 @@ libgstdroideglsink_la_LIBADD = $(GST_LIBS) \
                                $(GLES2_LIBS) \
                                $(EGL_LIBS) \
 			       $(NGI_LIBS) \
-                               $(top_builddir)/gst-libs/gst/gralloc/libgstgralloc.la \
-			       $(top_builddir)/gst/nativebuffer/libgstnativebuffer.la
+                               $(NEMO_GST_INTERFACES_LIBS) \
+                               $(top_builddir)/gst-libs/gst/anativewindowbuffer/libgstanativewindowbuffer-@GST_API_VERSION@.la
 
 libgstdroideglsink_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstdroideglsink_la_LIBTOOLFLAGS = --tag=disable-static
