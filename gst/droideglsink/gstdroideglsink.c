@@ -566,14 +566,6 @@ gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
       sink->hal_format, BUFFER_ALLOC_USAGE, stride);
 
-  if (!handle) {
-    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
-        ("Could not allocate native buffer handle"), (NULL));
-    return NULL;
-  }
-
-  GST_LOG_OBJECT (sink, "allocated handle %p", handle);
-
   return handle;
 }
 
