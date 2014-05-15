@@ -185,6 +185,8 @@ gst_droid_egl_sink_init (GstDroidEglSink * sink, GstDroidEglSinkClass * gclass)
   sink->dpy = EGL_NO_DISPLAY;
   sink->sync = EGL_NO_SYNC_KHR;
   sink->image = EGL_NO_IMAGE_KHR;
+  sink->last_buffer = NULL;
+  sink->acquired_buffer = NULL;
 
   g_mutex_init (&sink->buffer_lock);
 
@@ -326,9 +328,6 @@ gst_droid_egl_sink_start (GstBaseSink * bsink)
   GstDroidEglSink *sink = GST_DROID_EGL_SINK (bsink);
 
   GST_DEBUG_OBJECT (sink, "start");
-
-  sink->last_buffer = NULL;
-  sink->acquired_buffer = NULL;
 
   sink->gralloc = gst_gralloc_new ();
   if (!sink->gralloc) {
@@ -565,14 +564,6 @@ gst_droid_egl_sink_alloc_handle (GstDroidEglSink * sink, int *stride)
   buffer_handle_t handle =
       gst_gralloc_allocate (sink->gralloc, vsink->width, vsink->height,
       sink->hal_format, BUFFER_ALLOC_USAGE, stride);
-
-  if (!handle) {
-    GST_ELEMENT_ERROR (sink, LIBRARY, FAILED,
-        ("Could not allocate native buffer handle"), (NULL));
-    return NULL;
-  }
-
-  GST_LOG_OBJECT (sink, "allocated handle %p", handle);
 
   return handle;
 }
