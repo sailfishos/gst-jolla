@@ -3,7 +3,7 @@ Summary:        Collection of Jolla specific GStreamer plugins
 Version:        1.0.0
 Release:        1
 Group:          Applications/Multimedia
-License:        Proprietary
+License:        LGPLv2.1
 URL:            http://jollamobile.com
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  pkgconfig(gstreamer-video-0.10)
