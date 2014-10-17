@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Jolla LTD.
+ * Copyright (C) 2013-2014 Jolla LTD.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -70,6 +70,8 @@ struct _GstDroidEglSink {
   GMutex buffer_lock;
 
   EGLSyncKHR sync;
+  GstBuffer *sync_buffer;
+
   EGLImageKHR image;
 
   GQueue *free_buffers;
